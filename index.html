@@ -373,17 +373,24 @@ function spawnMissile() {
     element: document.createElement("div")
   };
 
+  
   if (type === "fast") {
     // ターコイズ色：細く、速い
     m.w = 27;
     m.h = 9;
     m.speed = 330;
     m.element.style.background = "#22d3c5";
-  } else if (type === "big") {
-    // 普通のミサイルを縦・横それぞれ2倍にする
+  } else if (type === "normal") {
+    // 普通のミサイル：ピンク色、旧でかいミサイルと同じサイズ
     m.w = 60;
     m.h = 36;
-    m.speed = 110;
+    m.speed = 190;
+    m.element.style.background = "#ed1472";
+  } else if (type === "big") {
+    // 黒いミサイル：縦横2倍、速度は従来の0.7倍
+    m.w = 120;
+    m.h = 72;
+    m.speed = 77;
     m.element.style.background = "#05070c";
     m.element.style.border = "1px solid #718096";
   }
