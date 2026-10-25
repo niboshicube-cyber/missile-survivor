@@ -480,13 +480,6 @@ function spawnMissile() {
     m.y = -m.width / 2;
     m.vy = d.speed;
     m.angle = 90;
-    if (type === "big") {
-      m.width = 72;
-      m.height = 120;
-    } else {
-      m.width = d.height;
-      m.height = d.width;
-    }
   } else {
     m.x = type === "big"
       ? g.gridLeft + lane * g.cellWidth
@@ -494,13 +487,6 @@ function spawnMissile() {
     m.y = g.height + m.width / 2;
     m.vy = -d.speed;
     m.angle = -90;
-    if (type === "big") {
-      m.width = 72;
-      m.height = 120;
-    } else {
-      m.width = d.height;
-      m.height = d.width;
-    }
   }
 
   m.element.style.transform = `rotate(${m.angle}deg)`;
@@ -518,15 +504,19 @@ function checkCollision() {
   const bottom = top + g.cellHeight;
 
   return missiles.some(m => {
+    const vertical = m.angle === 90 || m.angle === -90;
+    const w = vertical ? m.height : m.width;
+    const h = vertical ? m.width : m.height;
+
     return (
-      m.x + m.width / 2 > left &&
-      m.x - m.width / 2 < right &&
-      m.y + m.height / 2 > top &&
-      m.y - m.height / 2 < bottom
+      m.x + w / 2 > left &&
+      m.x - w / 2 < right &&
+      m.y + h / 2 > top &&
+      m.y - h / 2 < bottom
     );
   });
 }
-
+  
 function movePlayer(dx, dy) {
   if (!running) return;
 
