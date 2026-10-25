@@ -839,11 +839,16 @@ function gameLoop(now) {
     m.x += m.vx * speedFactor * dt;
     m.y += m.vy * speedFactor * dt;
 
-    const outside =
-      m.x + m.width / 2 < 0 ||
-      m.x - m.width / 2 > g.width ||
-      m.y + m.height / 2 < 0 ||
-      m.y - m.height / 2 > g.height;
+    
+const vertical = m.angle === 90 || m.angle === -90;
+const w = vertical ? m.height : m.width;
+const h = vertical ? m.width : m.height;
+
+const outside =
+  m.x + w / 2 < 0 ||
+  m.x - w / 2 > g.width ||
+  m.y + h / 2 < 0 ||
+  m.y - h / 2 > g.height;
 
     if (outside) {
       m.element.remove();
