@@ -387,11 +387,12 @@ function spawnMissile() {
   const side = Math.floor(Math.random() * 4);
   const lane = Math.floor(Math.random() * SIZE);
 
-  // 普通 2/3、速い 1/6、でかい 1/6
+  // 普通75%、速い約16.7%、でかい約8.3%
   const roll = Math.random();
   const type =
-    roll < 2 / 3 ? "normal" :
-    roll < 5 / 6 ? "fast" : "big";
+    roll < 3 / 4 ? "normal" :
+    roll < 11 / 12 ? "fast" :
+    "big";
 
   const m = {
     type,
@@ -407,19 +408,16 @@ function spawnMissile() {
   };
 
   if (type === "fast") {
-    // ターコイズ色：細く、速い
     m.w = 27;
     m.h = 9;
     m.speed = 330;
     m.element.style.background = "#22d3c5";
   } else if (type === "normal") {
-    // 普通のミサイル：元のサイズ、ピンク色
     m.w = 30;
     m.h = 18;
     m.speed = 190;
     m.element.style.background = "#ed1472";
   } else if (type === "big") {
-    // 黒いミサイル：縦横それぞれ120×72px、速度77
     m.w = 120;
     m.h = 72;
     m.speed = 77;
@@ -432,34 +430,27 @@ function spawnMissile() {
   m.element.style.height = m.h + "px";
 
   if (side === 0) {
-    // 左から右へ
     m.x = -m.w / 2;
     m.y = type === "big"
       ? g.gridTop + lane * g.cellHeight
       : g.gridTop + (lane + 0.5) * g.cellHeight;
     m.vx = m.speed;
     m.angle = 0;
-
   } else if (side === 1) {
-    // 右から左へ
     m.x = g.width + m.w / 2;
     m.y = type === "big"
       ? g.gridTop + lane * g.cellHeight
       : g.gridTop + (lane + 0.5) * g.cellHeight;
     m.vx = -m.speed;
     m.angle = 180;
-
   } else if (side === 2) {
-    // 上から下へ
     m.x = type === "big"
       ? g.gridLeft + lane * g.cellWidth
       : g.gridLeft + (lane + 0.5) * g.cellWidth;
     m.y = -m.w / 2;
     m.vy = m.speed;
     m.angle = 90;
-
   } else {
-    // 下から上へ
     m.x = type === "big"
       ? g.gridLeft + lane * g.cellWidth
       : g.gridLeft + (lane + 0.5) * g.cellWidth;
@@ -477,14 +468,12 @@ function spawnMissile() {
 function checkCollision() {
   const g = getLayout();
 
-  // プレイヤーの黒い本体部分を当たり判定にする
   const left = g.gridLeft + player.x * g.cellWidth + 5;
   const right = left + g.cellWidth - 10;
   const top = g.gridTop + player.y * g.cellHeight + 5;
   const bottom = top + g.cellHeight - 10;
 
   return missiles.some(m => {
-    // 回転後のミサイルの外形に合わせる
     const vertical = m.angle === 90 || m.angle === -90;
     const w = vertical ? m.h : m.w;
     const h = vertical ? m.w : m.h;
@@ -539,16 +528,14 @@ function gameLoop(now) {
     m.x += m.vx * speedFactor * dt;
     m.y += m.vy * speedFactor * dt;
 
-    // 回転後の見た目の幅・高さを使って画面外判定
     const vertical = m.angle === 90 || m.angle === -90;
-    const visualWidth = vertical ? m.h : m.w;
-    const visualHeight = vertical ? m.w : m.h;
-
+    const halfW = (vertical ? m.h : m.w) / 2;
+    const halfH = (vertical ? m.w : m.h) / 2;
     const outside =
-      m.x + visualWidth / 2 < 0 ||
-      m.x - visualWidth / 2 > g.width ||
-      m.y + visualHeight / 2 < 0 ||
-      m.y - visualHeight / 2 > g.height;
+      m.x + halfW < 0 ||
+      m.x - halfW > g.width ||
+      m.y + halfH < 0 ||
+      m.y - halfH > g.height;
 
     if (outside) {
       m.element.remove();
@@ -634,7 +621,6 @@ document.querySelectorAll("[data-dir]").forEach(button => {
   });
 });
 
-// PCのキーボード操作
 document.addEventListener("keydown", event => {
   const key = event.key.toLowerCase();
 
@@ -657,7 +643,6 @@ document.addEventListener("keydown", event => {
   }
 });
 
-// 画面全体でフリック操作を受け付ける
 let touchStartX = 0;
 let touchStartY = 0;
 let touchActive = false;
@@ -706,6 +691,7 @@ document.addEventListener("touchcancel", () => {
 }, { passive: false });
 
 startButton.addEventListener("click", startGame);
+
 window.addEventListener("resize", render);
 
 render();
