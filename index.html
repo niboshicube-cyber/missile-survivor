@@ -15,10 +15,8 @@
 :root {
   color-scheme: dark;
   --background: #101522;
-  --panel: #1c273a;
   --grid-line: #aebbd0;
   --grid-background: #385d96;
-  --player-color: #05080e;
   --missile-color: #ed1472;
 }
 
@@ -78,29 +76,21 @@ h1 {
   font-variant-numeric: tabular-nums;
 }
 
-/*
-  STAGE:
-  グリッドとミサイルを配置する固定比率の領域。
-  グリッド自体は常に中央の75%を占める。
-*/
+/* ステージとグリッドは独立させる */
 #stage {
   position: relative;
   width: min(100%, 360px);
   aspect-ratio: 1;
   margin: 0 auto;
-  overflow: visible;
+  overflow: hidden;
   background: #26364f;
   border: 1px solid #354968;
   border-radius: 8px;
   touch-action: none;
   user-select: none;
+  -webkit-user-select: none;
 }
 
-/*
-  GRID:
-  グリッドの大きさは常にステージの75%。
-  6列×6行をCSS Gridで固定する。
-*/
 #grid {
   position: absolute;
   left: 12.5%;
@@ -113,6 +103,7 @@ h1 {
   background: var(--grid-background);
   border: 2px solid var(--grid-line);
   z-index: 1;
+  pointer-events: none;
 }
 
 .cell {
@@ -120,9 +111,6 @@ h1 {
   min-height: 0;
   border-right: 2px solid var(--grid-line);
   border-bottom: 2px solid var(--grid-line);
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .cell:nth-child(6n) {
@@ -133,17 +121,17 @@ h1 {
   border-bottom: 0;
 }
 
-/* プレイヤーはマスの内側に固定して表示 */
+/* プレイヤー */
 #player {
   position: absolute;
-  width: calc(100% / 6 - 14px);
-  height: calc(100% / 6 - 14px);
-  background: var(--player-color);
+  width: 0;
+  height: 0;
+  background: #05080e;
   border: 2px solid #101522;
   border-radius: 5px;
   z-index: 4;
   pointer-events: none;
-  transition: left 65ms linear, top 65ms linear;
+  transition: left 55ms linear, top 55ms linear;
 }
 
 #player::after {
@@ -158,38 +146,22 @@ h1 {
 }
 
 /*
-  MISSILES:
-  グリッドとは独立した要素。
-  マスのサイズやグリッドの線に影響しない。
+  ミサイルは長方形の胴体と半円状の先端。
+  形そのものは横向きで作り、進行方向に回転させる。
 */
 .missile {
   position: absolute;
   width: 30px;
-  height: 14px;
+  height: 18px;
   background: var(--missile-color);
-  clip-path: polygon(
-    0 25%,
-    68% 25%,
-    68% 0,
-    100% 50%,
-    68% 100%,
-    68% 75%,
-    0 75%
-  );
+  border-radius: 0 50% 50% 0;
   z-index: 5;
   pointer-events: none;
-  will-change: left, top;
+  will-change: left, top, transform;
+  transform-origin: center center;
 }
 
-.missile.vertical {
-  width: 14px;
-  height: 30px;
-}
-
-.missile.warning {
-  filter: drop-shadow(0 0 4px #ff65a8);
-}
-
+/* 情報表示 */
 #message {
   min-height: 42px;
   padding: 12px 0 7px;
@@ -261,12 +233,10 @@ h1 {
       <div class="stat-label">SCORE</div>
       <div class="stat-value" id="score">0</div>
     </div>
-
     <div class="stat">
       <div class="stat-label">TIME</div>
       <div class="stat-value" id="time">0.0</div>
     </div>
-
     <div class="stat">
       <div class="stat-label">BEST</div>
       <div class="stat-value" id="best">0</div>
@@ -310,7 +280,7 @@ const bestElement = document.getElementById("best");
 const messageElement = document.getElementById("message");
 const startButton = document.getElementById("startButton");
 
-// グリッドのマスは最初に一度だけ生成する
+// グリッドは最初に一度だけ作る
 for (let i = 0; i < SIZE * SIZE; i++) {
   const cell = document.createElement("div");
   cell.className = "cell";
@@ -324,11 +294,9 @@ let running = false;
 let startTime = 0;
 let previousTime = 0;
 let lastSpawnTime = 0;
-let lastMoveTime = 0;
 let score = 0;
 let best = readBest();
 let animationId = null;
-let nextMissileId = 0;
 
 bestElement.textContent = best;
 
@@ -344,12 +312,11 @@ function saveBest(value) {
   try {
     localStorage.setItem("missileSurvivorBest", String(value));
   } catch {
-    // 保存できない環境でもゲームは続行できる
+    // 保存できなくてもゲームは続行する
   }
 }
 
-// ステージの大きさからグリッドの位置を計算する。
-// グリッドのサイズは常にステージの75%。
+// ステージの寸法から固定グリッドの座標を求める
 function getLayout() {
   const width = stage.clientWidth;
   const height = stage.clientHeight;
@@ -371,7 +338,7 @@ function getLayout() {
   };
 }
 
-// プレイヤーを指定したマスの中央に配置する
+// プレイヤーをマスの中央に配置する
 function drawPlayer() {
   const g = getLayout();
 
@@ -379,84 +346,78 @@ function drawPlayer() {
   const cellHeight = g.cellHeight;
 
   playerElement.style.left =
-    (g.gridLeft + player.x * cellWidth + 7) + "px";
+    (g.gridLeft + player.x * cellWidth + 5) + "px";
 
   playerElement.style.top =
-    (g.gridTop + player.y * cellHeight + 7) + "px";
+    (g.gridTop + player.y * cellHeight + 5) + "px";
 
-  playerElement.style.width = (cellWidth - 14) + "px";
-  playerElement.style.height = (cellHeight - 14) + "px";
+  playerElement.style.width = (cellWidth - 10) + "px";
+  playerElement.style.height = (cellHeight - 10) + "px";
 }
 
-// ゲームの状態を表示する
-function renderMissiles() {
-  for (const m of missiles) {
-    m.element.style.left = (m.x - m.width / 2) + "px";
-    m.element.style.top = (m.y - m.height / 2) + "px";
-  }
+// ミサイルの位置を更新する
+function drawMissile(m) {
+  m.element.style.left = (m.x - 15) + "px";
+  m.element.style.top = (m.y - 9) + "px";
 }
 
 function render() {
   drawPlayer();
-  renderMissiles();
+  for (const m of missiles) {
+    drawMissile(m);
+  }
 }
 
-// 新しいミサイルを作る。
-// side: left / right / top / bottom
-function spawnMissile(now) {
+// 四方の外側からミサイルを発射
+function spawnMissile() {
   const g = getLayout();
 
-  const side = ["left", "right", "top", "bottom"][
-    Math.floor(Math.random() * 4)
-  ];
-
+  const side = Math.floor(Math.random() * 4);
   const lane = Math.floor(Math.random() * SIZE);
 
-  const horizontal = side === "left" || side === "right";
-
-  const missile = {
-    id: nextMissileId++,
+  const m = {
     x: 0,
     y: 0,
     vx: 0,
     vy: 0,
-    width: horizontal ? 30 : 14,
-    height: horizontal ? 14 : 30,
+    angle: 0,
     element: document.createElement("div")
   };
 
-  missile.element.className =
-    horizontal ? "missile" : "missile vertical";
+  m.element.className = "missile";
 
-  if (side === "left") {
-    missile.x = -missile.width / 2;
-    missile.y = g.gridTop + (lane + 0.5) * g.cellHeight;
-    missile.vx = 155;
-  } else if (side === "right") {
-    missile.x = g.width + missile.width / 2;
-    missile.y = g.gridTop + (lane + 0.5) * g.cellHeight;
-    missile.vx = -155;
-    missile.element.style.transform = "rotate(180deg)";
-  } else if (side === "top") {
-    missile.x = g.gridLeft + (lane + 0.5) * g.cellWidth;
-    missile.y = -missile.height / 2;
-    missile.vy = 155;
-    missile.element.style.transform = "rotate(90deg)";
+  if (side === 0) {
+    // 左から右
+    m.x = -15;
+    m.y = g.gridTop + (lane + 0.5) * g.cellHeight;
+    m.vx = 190;
+    m.angle = 0;
+  } else if (side === 1) {
+    // 右から左
+    m.x = g.width + 15;
+    m.y = g.gridTop + (lane + 0.5) * g.cellHeight;
+    m.vx = -190;
+    m.angle = 180;
+  } else if (side === 2) {
+    // 上から下
+    m.x = g.gridLeft + (lane + 0.5) * g.cellWidth;
+    m.y = -15;
+    m.vy = 190;
+    m.angle = 90;
   } else {
-    missile.x = g.gridLeft + (lane + 0.5) * g.cellWidth;
-    missile.y = g.height + missile.height / 2;
-    missile.vy = -155;
-    missile.element.style.transform = "rotate(-90deg)";
+    // 下から上
+    m.x = g.gridLeft + (lane + 0.5) * g.cellWidth;
+    m.y = g.height + 15;
+    m.vy = -190;
+    m.angle = -90;
   }
 
-  stage.appendChild(missile.element);
-  missiles.push(missile);
+  // 要素は常に30×18。回転しても形は変形しない。
+  m.element.style.transform = `rotate(${m.angle}deg)`;
 
-  // 発射した直後から位置を反映する
-  missile.element.style.left =
-    (missile.x - missile.width / 2) + "px";
-  missile.element.style.top =
-    (missile.y - missile.height / 2) + "px";
+  stage.appendChild(m.element);
+  missiles.push(m);
+  drawMissile(m);
 }
 
 // プレイヤーの移動
@@ -466,7 +427,6 @@ function movePlayer(dx, dy) {
   const nx = player.x + dx;
   const ny = player.y + dy;
 
-  // 盤面の外には出られない
   if (nx < 0 || nx >= SIZE || ny < 0 || ny >= SIZE) {
     return;
   }
@@ -481,7 +441,7 @@ function movePlayer(dx, dy) {
   }
 }
 
-// ミサイルの位置がプレイヤーのマスに入ったら衝突
+// 衝突判定。縦向きのミサイルは当たり判定も縦長にする。
 function checkCollision() {
   const g = getLayout();
 
@@ -490,15 +450,21 @@ function checkCollision() {
   const top = g.gridTop + player.y * g.cellHeight;
   const bottom = top + g.cellHeight;
 
-  return missiles.some(m =>
-    m.x + m.width / 2 > left &&
-    m.x - m.width / 2 < right &&
-    m.y + m.height / 2 > top &&
-    m.y - m.height / 2 < bottom
-  );
+  return missiles.some(m => {
+    const vertical = m.angle === 90 || m.angle === -90;
+    const hitWidth = vertical ? 18 : 30;
+    const hitHeight = vertical ? 30 : 18;
+
+    return (
+      m.x + hitWidth / 2 > left &&
+      m.x - hitWidth / 2 < right &&
+      m.y + hitHeight / 2 > top &&
+      m.y - hitHeight / 2 < bottom
+    );
+  });
 }
 
-// メインゲームループ
+// ゲームループ
 function gameLoop(now) {
   if (!running) return;
 
@@ -507,38 +473,32 @@ function gameLoop(now) {
   previousTime = now;
 
   score = Math.floor(elapsed * 10);
-
   scoreElement.textContent = score;
   timeElement.textContent = elapsed.toFixed(1);
 
-  // 生き残るほど発射頻度を上げる
-  const spawnInterval = Math.max(380, 1050 - elapsed * 9);
+  // 発射間隔を短縮してミサイルを増やす
+  const spawnInterval = Math.max(180, 600 - elapsed * 7);
 
-  // 生き残るほど移動速度も上げる
+  // 生存するほど速くなる
   const speedFactor = Math.min(2.2, 1 + elapsed * 0.012);
 
   if (now - lastSpawnTime >= spawnInterval) {
-    spawnMissile(now);
+    spawnMissile();
     lastSpawnTime = now;
   }
 
-  // ミサイルを移動する
-  for (const m of missiles) {
-    m.x += m.vx * speedFactor * dt;
-    m.y += m.vy * speedFactor * dt;
-  }
-
-  // ステージを完全に通過したミサイルを削除
   const g = getLayout();
-
   const remaining = [];
 
   for (const m of missiles) {
+    m.x += m.vx * speedFactor * dt;
+    m.y += m.vy * speedFactor * dt;
+
     const outside =
-      m.x + m.width / 2 < 0 ||
-      m.x - m.width / 2 > g.width ||
-      m.y + m.height / 2 < 0 ||
-      m.y - m.height / 2 > g.height;
+      m.x + 30 < 0 ||
+      m.x - 30 > g.width ||
+      m.y + 30 < 0 ||
+      m.y - 30 > g.height;
 
     if (outside) {
       m.element.remove();
@@ -549,18 +509,16 @@ function gameLoop(now) {
 
   missiles = remaining;
 
-  // ミサイルがプレイヤーに衝突したか判定
   if (checkCollision()) {
     endGame();
     return;
   }
 
   render();
-
   animationId = requestAnimationFrame(gameLoop);
 }
 
-// ゲーム開始・リスタート
+// ゲーム開始
 function startGame() {
   if (animationId !== null) {
     cancelAnimationFrame(animationId);
@@ -579,7 +537,6 @@ function startGame() {
   startTime = performance.now();
   previousTime = startTime;
   lastSpawnTime = startTime;
-  lastMoveTime = startTime;
 
   scoreElement.textContent = "0";
   timeElement.textContent = "0.0";
@@ -587,7 +544,6 @@ function startGame() {
   startButton.textContent = "RESTART";
 
   render();
-
   animationId = requestAnimationFrame(gameLoop);
 }
 
@@ -606,17 +562,15 @@ function endGame() {
     best = score;
     saveBest(best);
     bestElement.textContent = best;
-    messageElement.textContent =
-      "NEW BEST! スコア：" + score;
+    messageElement.textContent = "NEW BEST! スコア：" + score;
   } else {
-    messageElement.textContent =
-      "GAME OVER！ スコア：" + score;
+    messageElement.textContent = "GAME OVER！ スコア：" + score;
   }
 
   startButton.textContent = "TRY AGAIN";
 }
 
-// 方向入力
+// 方向操作
 const directions = {
   up: [0, -1],
   down: [0, 1],
@@ -658,17 +612,27 @@ document.addEventListener("keydown", event => {
   }
 });
 
-// スワイプ操作
+// スマホのスワイプ操作
 let pointerStartX = 0;
 let pointerStartY = 0;
 let pointerId = null;
 
 stage.addEventListener("pointerdown", event => {
   if (!running) return;
+  if (event.pointerType === "mouse" && event.button !== 0) return;
 
   pointerStartX = event.clientX;
   pointerStartY = event.clientY;
   pointerId = event.pointerId;
+
+  // 指が盤面の外に移動しても pointerup を受け取る
+  try {
+    stage.setPointerCapture(event.pointerId);
+  } catch (_) {
+    // 対応していない環境では通常のイベント処理を使う
+  }
+
+  event.preventDefault();
 });
 
 stage.addEventListener("pointerup", event => {
@@ -679,15 +643,17 @@ stage.addEventListener("pointerup", event => {
 
   pointerId = null;
 
-  if (Math.max(Math.abs(dx), Math.abs(dy)) < 15) {
-    return;
-  }
+  const distance = Math.max(Math.abs(dx), Math.abs(dy));
+
+  if (distance < 12) return;
 
   if (Math.abs(dx) > Math.abs(dy)) {
     handleDirection(dx > 0 ? "right" : "left");
   } else {
     handleDirection(dy > 0 ? "down" : "up");
   }
+
+  event.preventDefault();
 });
 
 stage.addEventListener("pointercancel", () => {
@@ -696,10 +662,8 @@ stage.addEventListener("pointercancel", () => {
 
 startButton.addEventListener("click", startGame);
 
-// 画面サイズ変更時もグリッドの比率を維持する
 window.addEventListener("resize", render);
 
-// 初期表示
 render();
 </script>
 </body>
