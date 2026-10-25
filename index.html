@@ -5,13 +5,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>MISSILE SURVIVOR</title>
-
 <style>
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
-
 :root {
   color-scheme: dark;
   --background: #101522;
@@ -19,7 +17,6 @@
   --grid-background: #385d96;
   --missile-color: #ed1472;
 }
-
 html {
   width: 100%;
   height: 100%;
@@ -28,7 +25,6 @@ html {
   overscroll-behavior: none;
   touch-action: none;
 }
-
 body {
   position: fixed;
   inset: 0;
@@ -49,7 +45,6 @@ body {
   -webkit-user-select: none;
   user-select: none;
 }
-
 .game {
   width: 100%;
   max-width: 430px;
@@ -59,43 +54,36 @@ body {
   touch-action: none;
   overscroll-behavior: none;
 }
-
 h1 {
   font-size: 27px;
   letter-spacing: 2px;
   margin: 0 0 5px;
 }
-
 .subtitle {
   font-size: 11px;
   letter-spacing: 1.5px;
   color: #95a7c4;
   margin-bottom: 15px;
 }
-
 .stats {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin: 0 3px 12px;
 }
-
 .stat {
   min-width: 65px;
 }
-
 .stat-label {
   color: #95a7c4;
   font-size: 10px;
   letter-spacing: 1px;
 }
-
 .stat-value {
   font-size: 23px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
-
 #stage {
   position: relative;
   width: min(100%, 360px);
@@ -109,7 +97,6 @@ h1 {
   touch-action: none;
   overscroll-behavior: none;
 }
-
 #grid {
   position: absolute;
   left: 12.5%;
@@ -124,22 +111,18 @@ h1 {
   z-index: 1;
   pointer-events: none;
 }
-
 .cell {
   min-width: 0;
   min-height: 0;
   border-right: 2px solid var(--grid-line);
   border-bottom: 2px solid var(--grid-line);
 }
-
 .cell:nth-child(6n) {
   border-right: 0;
 }
-
 .cell:nth-last-child(-n + 6) {
   border-bottom: 0;
 }
-
 #player {
   position: absolute;
   background: #05080e;
@@ -149,7 +132,6 @@ h1 {
   pointer-events: none;
   transition: left 45ms linear, top 45ms linear;
 }
-
 #player::after {
   content: "";
   position: absolute;
@@ -160,7 +142,6 @@ h1 {
   transform: translate(-50%, -50%) rotate(45deg);
   border: 2px solid #d7e8ff;
 }
-
 .missile {
   position: absolute;
   width: 30px;
@@ -171,14 +152,12 @@ h1 {
   pointer-events: none;
   will-change: left, top;
 }
-
 #message {
   min-height: 38px;
   padding: 10px 0 6px;
   font-size: 13px;
   color: #bdcbe0;
 }
-
 #startButton {
   width: 100%;
   padding: 13px;
@@ -190,7 +169,6 @@ h1 {
   font-weight: 800;
   touch-action: none;
 }
-
 .controls {
   display: grid;
   grid-template-columns: repeat(3, 48px);
@@ -198,7 +176,6 @@ h1 {
   gap: 5px;
   margin-top: 10px;
 }
-
 .controls button {
   height: 38px;
   padding: 0;
@@ -209,65 +186,43 @@ h1 {
   font-size: 20px;
   touch-action: none;
 }
-
 .controls .empty {
   visibility: hidden;
 }
-
-.help {
-  margin-top: 8px;
-  color: #8190aa;
-  font-size: 11px;
-  line-height: 1.6;
-}
-
 @media (min-width: 600px) {
   .controls {
     display: none;
   }
 }
-
 @media (max-height: 650px) {
   body {
     padding: 6px;
   }
-
   h1 {
     font-size: 21px;
   }
-
   .subtitle {
     margin-bottom: 7px;
   }
-
   .stats {
     margin-bottom: 6px;
   }
-
   #stage {
     width: min(76vw, 360px, 43dvh);
   }
-
   #message {
     min-height: 28px;
     padding: 5px 0;
   }
-
   #startButton {
     padding: 9px;
   }
-
   .controls {
     margin-top: 5px;
-  }
-
-  .help {
-    margin-top: 4px;
   }
 }
 </style>
 </head>
-
 <body>
 <main class="game">
   <h1>MISSILE SURVIVOR</h1>
@@ -303,11 +258,6 @@ h1 {
     <button data-dir="left">←</button>
     <button data-dir="down">↓</button>
     <button data-dir="right">→</button>
-  </div>
-
-  <div class="help">
-    画面のどこでもフリックして1マス移動<br>
-    PCでは矢印キー・WASDでも操作できます
   </div>
 </main>
 
@@ -389,8 +339,8 @@ function drawPlayer() {
 }
 
 function drawMissile(m) {
-  m.element.style.left = (m.x - 15) + "px";
-  m.element.style.top = (m.y - 9) + "px";
+  m.element.style.left = (m.x - m.w / 2) + "px";
+  m.element.style.top = (m.y - m.h / 2) + "px";
 }
 
 function render() {
@@ -403,36 +353,63 @@ function spawnMissile() {
   const side = Math.floor(Math.random() * 4);
   const lane = Math.floor(Math.random() * SIZE);
 
+  // 普通 2/3、速い 1/6、でかい 1/6
+  const roll = Math.random();
+  const type =
+    roll < 2 / 3 ? "normal" :
+    roll < 5 / 6 ? "fast" : "big";
+
   const m = {
+    type,
     x: 0,
     y: 0,
     vx: 0,
     vy: 0,
     angle: 0,
+    w: 30,
+    h: 18,
+    speed: 190,
     element: document.createElement("div")
   };
 
+  if (type === "fast") {
+    // 速いミサイル：ターコイズ色で細く速い
+    m.w = 27;
+    m.h = 9;
+    m.speed = 330;
+    m.element.style.background = "#22d3c5";
+  } else if (type === "big") {
+    // でかいミサイル：長さ約2マス分、黒色で遅い
+    m.w = g.cellWidth * 2;
+    m.h = g.cellHeight * 0.62;
+    m.speed = 110;
+    m.element.style.background = "#05070c";
+    m.element.style.border = "1px solid #718096";
+  }
+
   m.element.className = "missile";
+  m.element.style.width = m.w + "px";
+  m.element.style.height = m.h + "px";
 
   if (side === 0) {
-    m.x = -15;
+    m.x = -m.w / 2;
     m.y = g.gridTop + (lane + 0.5) * g.cellHeight;
-    m.vx = 190;
+    m.vx = m.speed;
     m.angle = 0;
   } else if (side === 1) {
-    m.x = g.width + 15;
+    m.x = g.width + m.w / 2;
     m.y = g.gridTop + (lane + 0.5) * g.cellHeight;
-    m.vx = -190;
+    m.vx = -m.speed;
     m.angle = 180;
   } else if (side === 2) {
     m.x = g.gridLeft + (lane + 0.5) * g.cellWidth;
-    m.y = -15;
-    m.vy = 190;
+    m.y = -m.w / 2;
+    m.vy = m.speed;
     m.angle = 90;
   } else {
     m.x = g.gridLeft + (lane + 0.5) * g.cellWidth;
-    m.y = g.height + 15;
-    m.vy = -190;
+    m.y = g.height + m.w / 2;
+    m.vy = -m.speed;
     m.angle = -90;
   }
 
@@ -452,8 +429,8 @@ function checkCollision() {
 
   return missiles.some(m => {
     const vertical = m.angle === 90 || m.angle === -90;
-    const w = vertical ? 18 : 30;
-    const h = vertical ? 30 : 18;
+    const w = vertical ? m.h : m.w;
+    const h = vertical ? m.w : m.h;
 
     return (
       m.x + w / 2 > left &&
@@ -505,11 +482,15 @@ function gameLoop(now) {
     m.x += m.vx * speedFactor * dt;
     m.y += m.vy * speedFactor * dt;
 
+    const vertical = m.angle === 90 || m.angle === -90;
+    const halfW = (vertical ? m.h : m.w) / 2;
+    const halfH = (vertical ? m.w : m.h) / 2;
+
     const outside =
-      m.x + 30 < 0 ||
-      m.x - 30 > g.width ||
-      m.y + 30 < 0 ||
-      m.y - 30 > g.height;
+      m.x + halfW < 0 ||
+      m.x - halfW > g.width ||
+      m.y + halfH < 0 ||
+      m.y - halfH > g.height;
 
     if (outside) {
       m.element.remove();
@@ -627,7 +608,6 @@ document.addEventListener("touchstart", event => {
   if (!running || event.changedTouches.length === 0) return;
 
   const touch = event.changedTouches[0];
-
   touchStartX = touch.clientX;
   touchStartY = touch.clientY;
   touchActive = true;
@@ -667,7 +647,6 @@ document.addEventListener("touchcancel", () => {
 }, { passive: false });
 
 startButton.addEventListener("click", startGame);
-
 window.addEventListener("resize", render);
 
 render();
