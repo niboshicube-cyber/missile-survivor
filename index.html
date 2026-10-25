@@ -339,6 +339,7 @@ function drawPlayer() {
 }
 
 function drawMissile(m) {
+  // x,yはミサイルの中心。描画と当たり判定で同じ寸法を使う
   m.element.style.left = (m.x - m.w / 2) + "px";
   m.element.style.top = (m.y - m.h / 2) + "px";
 }
@@ -373,15 +374,15 @@ function spawnMissile() {
   };
 
   if (type === "fast") {
-    // 速いミサイル：ターコイズ色で細く速い
+    // ターコイズ色：細く、速い
     m.w = 27;
     m.h = 9;
     m.speed = 330;
     m.element.style.background = "#22d3c5";
   } else if (type === "big") {
-    // でかいミサイル：長さ約2マス分、黒色で遅い
-    m.w = g.cellWidth * 2;
-    m.h = g.cellHeight * 0.62;
+    // 普通のミサイルを縦・横それぞれ2倍にする
+    m.w = 60;
+    m.h = 36;
     m.speed = 110;
     m.element.style.background = "#05070c";
     m.element.style.border = "1px solid #718096";
@@ -422,21 +423,29 @@ function spawnMissile() {
 function checkCollision() {
   const g = getLayout();
 
-  const left = g.gridLeft + player.x * g.cellWidth;
-  const right = left + g.cellWidth;
-  const top = g.gridTop + player.y * g.cellHeight;
-  const bottom = top + g.cellHeight;
+  // プレイヤーのマス全体ではなく、黒い本体の範囲を使う
+  const left = g.gridLeft + player.x * g.cellWidth + 5;
+  const right = left + g.cellWidth - 10;
+  const top = g.gridTop + player.y * g.cellHeight + 5;
+  const bottom = top + g.cellHeight - 10;
 
   return missiles.some(m => {
+    // 回転後の見た目の幅・高さに合わせる
     const vertical = m.angle === 90 || m.angle === -90;
-    const w = vertical ? m.h : m.w;
-    const h = vertical ? m.w : m.h;
+    const visualWidth = vertical ? m.h : m.w;
+    const visualHeight = vertical ? m.w : m.h;
+
+    // ミサイルの頭からお尻までの外形と同じ範囲で判定
+    const missileLeft = m.x - visualWidth / 2;
+    const missileRight = m.x + visualWidth / 2;
+    const missileTop = m.y - visualHeight / 2;
+    const missileBottom = m.y + visualHeight / 2;
 
     return (
-      m.x + w / 2 > left &&
-      m.x - w / 2 < right &&
-      m.y + h / 2 > top &&
-      m.y - h / 2 < bottom
+      missileRight > left &&
+      missileLeft < right &&
+      missileBottom > top &&
+      missileTop < bottom
     );
   });
 }
@@ -483,14 +492,14 @@ function gameLoop(now) {
     m.y += m.vy * speedFactor * dt;
 
     const vertical = m.angle === 90 || m.angle === -90;
-    const halfW = (vertical ? m.h : m.w) / 2;
-    const halfH = (vertical ? m.w : m.h) / 2;
+    const visualWidth = vertical ? m.h : m.w;
+    const visualHeight = vertical ? m.w : m.h;
 
     const outside =
-      m.x + halfW < 0 ||
-      m.x - halfW > g.width ||
-      m.y + halfH < 0 ||
-      m.y - halfH > g.height;
+      m.x + visualWidth / 2 < 0 ||
+      m.x - visualWidth / 2 > g.width ||
+      m.y + visualHeight / 2 < 0 ||
+      m.y - visualHeight / 2 > g.height;
 
     if (outside) {
       m.element.remove();
