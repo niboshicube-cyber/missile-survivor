@@ -1094,6 +1094,48 @@ function getCollidingMissile() {
   }) || null;
 }
 
+function checkFlameCollisions() {
+  const remaining = [];
+
+  for (const m of missiles) {
+    let hitFlame = false;
+
+    for (const flame of flameTrails) {
+      const flameX =
+        getLayout().gridLeft +
+        (flame.x + 0.5) * getLayout().cellWidth;
+
+      const flameY =
+        getLayout().gridTop +
+        (flame.y + 0.5) * getLayout().cellHeight;
+
+      const flameLeft = flameX - 4;
+      const flameRight = flameX + 4;
+      const flameTop = flameY - 12.5;
+      const flameBottom = flameY + 12.5;
+
+      if (
+        m.x + m.width / 2 > flameLeft &&
+        m.x - m.width / 2 < flameRight &&
+        m.y + m.height / 2 > flameTop &&
+        m.y - m.height / 2 < flameBottom
+      ) {
+        hitFlame = true;
+        break;
+      }
+    }
+
+    if (hitFlame) {
+      createExplosion(m.x, m.y);
+      m.element.remove();
+    } else {
+      remaining.push(m);
+    }
+  }
+
+  missiles = remaining;
+}
+
 function movePlayer(dx, dy) {
   if (!running) return;
 
@@ -1102,16 +1144,17 @@ function movePlayer(dx, dy) {
 
   if (nx < 0 || nx >= SIZE || ny < 0 || ny >= SIZE) return;
 
+  const oldX = player.x;
+  const oldY = player.y;
+
   player.x = nx;
   player.y = ny;
+
+  addFlameTrail(oldX, oldY);
   drawPlayer();
 
-  const hitMissile = getCollidingMissile();
-
-  if (hitMissile) {
-    handlePlayerHit(hitMissile);
-  } else if (checkSpecialCollision()) {
-    handlePlayerHit();
+  if (checkCollision() || checkSpecialCollision()) {
+    endGame();
   }
 }
 
@@ -1169,7 +1212,9 @@ function gameLoop(now) {
 
   missiles = remaining;
 
-  updateSpecialMissiles(now, dt);
+checkFlameCollisions();
+
+updateSpecialMissiles(now, dt);
 
   const hitMissile = getCollidingMissile();
 
