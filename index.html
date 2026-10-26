@@ -614,7 +614,13 @@ function drawMissile(m) {
 
 function render() {
   drawPlayer();
+  drawFlameTrails();
+
   for (const m of missiles) drawMissile(m);
+
+  for (const special of specialMissiles) {
+    drawSpecialMissile(special);
+  }
 }
 
 function spawnMissile() {
