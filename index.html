@@ -719,10 +719,6 @@ function drawSpecialBeam(special) {
   }
 }
 
-/*
-プレイヤーの現在位置を狙う。
-感知したら正方形を停止させ、狙ったマスの位置を固定する。
-*/
 function detectPlayer(special) {
   const g = getLayout();
 
@@ -761,7 +757,7 @@ function detectPlayer(special) {
   }
 }
 
-/* 感知後：白く2回点滅 */
+
 function beginSpecialFlash(special) {
   special.phase = "flash";
   special.phaseStart = performance.now();
@@ -770,11 +766,6 @@ function beginSpecialFlash(special) {
   playSpecialSound(900, 0.09);
 }
 
-/*
-更新処理：
-白点滅を2回（4段階）→「ピッ、ピッ、ビー」→終了。
-ビームは短く2回点滅してから長く照射する。
-*/
 function updateSpecialMissiles(now, dt) {
   const g = getLayout();
   const remaining = [];
@@ -862,7 +853,59 @@ function checkSpecialCollision() {
   });
 }
 
-/* 既存ミサイルの当たり判定は変更しない */
+function createExplosion(x, y) {
+  const burst = document.createElement("div");
+  burst.className = "explosion-burst";
+  burst.style.left = x + "px";
+  burst.style.top = y + "px";
+
+  for (let i = 0; i < 14; i++) {
+    const particle = document.createElement("div");
+    particle.className = "explosion-particle";
+
+    const angle = Math.PI * 2 * i / 14;
+    const distance = 18 + Math.random() * 22;
+
+    particle.style.setProperty(
+      "--dx",
+      Math.cos(angle) * distance + "px"
+    );
+    particle.style.setProperty(
+      "--dy",
+      Math.sin(angle) * distance + "px"
+    );
+
+    burst.appendChild(particle);
+  }
+
+  stage.appendChild(burst);
+
+  setTimeout(() => {
+    burst.remove();
+  }, 500);
+}
+
+function handlePlayerHit(hitMissile = null) {
+  if (!running) return;
+
+  const g = getLayout();
+
+  const playerX =
+    g.gridLeft + (player.x + 0.5) * g.cellWidth;
+  const playerY =
+    g.gridTop + (player.y + 0.5) * g.cellHeight;
+
+  createExplosion(playerX, playerY);
+  playerElement.style.visibility = "hidden";
+
+  if (hitMissile) {
+    createExplosion(hitMissile.x, hitMissile.y);
+    hitMissile.element.remove();
+  }
+
+  endGame();
+}
+
 function checkCollision() {
   const g = getLayout();
 
