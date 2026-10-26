@@ -181,12 +181,13 @@ h1 {
   border-radius: 0 50% 50% 0;
 }
 
+
 .missile.big {
   width: 120px;
   height: 72px;
   background: #05070c;
   border: 1px solid #718096;
-  border-radius: 8px;
+  border-radius: 0 50% 50% 0;
 }
 
 .special-square {
@@ -613,6 +614,7 @@ function spawnSpecialMissile() {
   drawSpecialMissile(special);
 }
 
+
 function drawSpecialMissile(special) {
   const g = getLayout();
   const size = 16;
@@ -630,27 +632,24 @@ function drawSpecialMissile(special) {
     });
   }
 
+  let positions;
+
   if (special.horizontal) {
-    const positions = [
-      special.y,
-      special.y + (special.direction === 1 ? 20 : -20)
+    positions = [
+      { x: special.x, y: g.gridTop - 10 },
+      { x: special.x, y: g.gridTop + g.gridHeight + 10 }
     ];
-
-    special.squares.forEach((square, i) => {
-      square.style.left = (special.x - size / 2) + "px";
-      square.style.top = (positions[i] - size / 2) + "px";
-    });
   } else {
-    const positions = [
-      special.x,
-      special.x + (special.direction === 1 ? 20 : -20)
+    positions = [
+      { x: g.gridLeft - 10, y: special.y },
+      { x: g.gridLeft + g.gridWidth + 10, y: special.y }
     ];
-
-    special.squares.forEach((square, i) => {
-      square.style.left = (positions[i] - size / 2) + "px";
-      square.style.top = (special.y - size / 2) + "px";
-    });
   }
+
+  special.squares.forEach((square, i) => {
+    square.style.left = (positions[i].x - size / 2) + "px";
+    square.style.top = (positions[i].y - size / 2) + "px";
+  });
 
   drawSpecialBeam(special, g);
 }
