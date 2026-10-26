@@ -1102,18 +1102,21 @@ function getCollidingMissile() {
 
 function checkFlameCollisions() {
   const remaining = [];
+  const g = getLayout();
 
   for (const m of missiles) {
     let hitFlame = false;
 
+    // 縦向きのミサイルは衝突判定用の幅と高さを入れ替える
+    const vertical = m.angle === 90 || m.angle === -90;
+    const halfW = (vertical ? m.h : m.w) / 2;
+    const halfH = (vertical ? m.w : m.h) / 2;
+
     for (const flame of flameTrails) {
       const flameX =
-        getLayout().gridLeft +
-        (flame.x + 0.5) * getLayout().cellWidth;
-
+        g.gridLeft + (flame.x + 0.5) * g.cellWidth;
       const flameY =
-        getLayout().gridTop +
-        (flame.y + 0.5) * getLayout().cellHeight;
+        g.gridTop + (flame.y + 0.5) * g.cellHeight;
 
       const flameLeft = flameX - 4;
       const flameRight = flameX + 4;
@@ -1121,10 +1124,10 @@ function checkFlameCollisions() {
       const flameBottom = flameY + 12.5;
 
       if (
-        m.x + m.width / 2 > flameLeft &&
-        m.x - m.width / 2 < flameRight &&
-        m.y + m.height / 2 > flameTop &&
-        m.y - m.height / 2 < flameBottom
+        m.x + halfW > flameLeft &&
+        m.x - halfW < flameRight &&
+        m.y + halfH > flameTop &&
+        m.y - halfH < flameBottom
       ) {
         hitFlame = true;
         break;
