@@ -396,13 +396,14 @@ function drawPlayer() {
   const g = getLayout();
   const w = g.cellWidth;
   const h = g.cellHeight;
+  const size = Math.min(w, h) - 10;
 
+  playerElement.style.width = size + "px";
+  playerElement.style.height = size + "px";
   playerElement.style.left =
-    (g.gridLeft + player.x * w + 5) + "px";
+    (g.gridLeft + (player.x + 0.5) * w - size / 2) + "px";
   playerElement.style.top =
-    (g.gridTop + player.y * h + 5) + "px";
-  playerElement.style.width = (w - 10) + "px";
-  playerElement.style.height = (h - 10) + "px";
+    (g.gridTop + (player.y + 0.5) * h - size / 2) + "px";
 }
 
 function drawMissile(m) {
