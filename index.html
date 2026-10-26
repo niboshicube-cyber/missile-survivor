@@ -759,19 +759,12 @@ function updateSpecialMissiles(now, dt) {
         special.beamOn = true;
         playSpecialSound(980, 0.22, 0.09);
       }
+    
     } else if (special.phase === "beam") {
       const elapsed = now - special.phaseStart;
 
-      if (elapsed < 1050) {
-        special.beamOn =
-          elapsed < 180 ||
-          (elapsed >= 300 && elapsed < 420) ||
-          (elapsed >= 540 && elapsed < 660) ||
-          elapsed >= 780;
-
-        if (elapsed >= 780 && elapsed < 800) {
-          playSpecialSound(560, 0.1, 0.045);
-        }
+      if (elapsed < 200) {
+        special.beamOn = true;
       } else {
         removeSpecialMissile(special);
         continue;
