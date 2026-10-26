@@ -522,9 +522,8 @@ let lastSpecialSpawnTime = 0;
 let score = 0;
 let best = readBest();
 let animationId = null;
-
-/* 追加：特殊ミサイル専用の状態 */
 let specialMissiles = [];
+let flameTrails = [];
 let audioContext = null;
 
 bestElement.textContent = best;
@@ -577,6 +576,37 @@ function drawPlayer() {
     (g.gridTop + (player.y + 0.5) * h - size / 2) + "px";
 }
 
+function addFlameTrail(x, y) {
+  const flame = {
+    x,
+    y,
+    element: document.createElement("div")
+  };
+
+  flame.element.className = "flame-trail";
+  stage.appendChild(flame.element);
+  flameTrails.push(flame);
+
+  while (flameTrails.length > 5) {
+    const oldest = flameTrails.shift();
+    oldest.element.remove();
+  }
+
+  drawFlameTrails();
+}
+
+function drawFlameTrails() {
+  const g = getLayout();
+
+  for (const flame of flameTrails) {
+    flame.element.style.left =
+      (g.gridLeft + (flame.x + 0.5) * g.cellWidth) + "px";
+
+    flame.element.style.top =
+      (g.gridTop + (flame.y + 0.5) * g.cellHeight) + "px";
+  }
+}
+
 function drawMissile(m) {
   m.element.style.left = (m.x - m.w / 2) + "px";
   m.element.style.top = (m.y - m.h / 2) + "px";
@@ -587,7 +617,6 @@ function render() {
   for (const m of missiles) drawMissile(m);
 }
 
-/* 既存：普通・速い・でかいミサイルの生成処理 */
 function spawnMissile() {
   const g = getLayout();
   const side = Math.floor(Math.random() * 4);
@@ -670,11 +699,6 @@ function spawnMissile() {
   drawMissile(m);
 }
 
-/* =========================================================
-   追加：特殊ミサイル
-   ========================================================= */
-
-/* 効果音。「ピッ」「ピッ」「ビー」に使う */
 function playSpecialSound(frequency, duration, volume = 0.07) {
   try {
     if (!audioContext) {
@@ -708,14 +732,6 @@ function playSpecialSound(frequency, duration, volume = 0.07) {
   } catch {}
 }
 
-/*
-特殊ミサイルの方向：
-horizontal = 左右から来て、上下の外側を水平移動
-vertical   = 上下から来て、左右の外側を垂直移動
-
-プレイヤーのマスの中心に到達したら停止し、
-白く2回点滅したあと、ビームを発射する。
-*/
 function spawnSpecialMissile() {
   const g = getLayout();
 
@@ -764,7 +780,7 @@ function spawnSpecialMissile() {
   drawSpecialMissile(special);
 }
 
-/* 黄色い2つの正方形とビームを描画 */
+
 function drawSpecialMissile(special) {
   const g = getLayout();
   const squareSize = 16;
@@ -804,7 +820,6 @@ function drawSpecialMissile(special) {
   drawSpecialBeam(special);
 }
 
-/* ビームはマスの中心を通す */
 function drawSpecialBeam(special) {
   const g = getLayout();
   const beam = special.beamElement;
@@ -872,7 +887,6 @@ function detectPlayer(special) {
     }
   }
 }
-
 
 function beginSpecialFlash(special) {
   special.phase = "flash";
@@ -954,7 +968,6 @@ function removeSpecialMissile(special) {
   special.beamElement.remove();
 }
 
-/* ビームが実際に照射中かを確認 */
 function checkSpecialCollision() {
   return specialMissiles.some(special => {
     if (special.phase !== "beam" || !special.beamOn) {
