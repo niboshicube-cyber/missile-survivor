@@ -5,6 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>MISSILE SURVIVOR</title>
+
 <style>
 * {
   box-sizing: border-box;
@@ -16,6 +17,7 @@
   --background: #101522;
   --grid-line: #aebbd0;
   --grid-background: #385d96;
+  --missile-color: #ed1472;
 }
 
 html {
@@ -161,35 +163,16 @@ h1 {
 
 .missile {
   position: absolute;
-  background: var(--missile-color, #ed1472);
+  width: 30px;
+  height: 18px;
+  background: var(--missile-color);
   border-radius: 0 50% 50% 0;
   z-index: 5;
   pointer-events: none;
   will-change: left, top;
 }
 
-.missile.normal {
-  width: 30px;
-  height: 18px;
-  --missile-color: #ed1472;
-}
-
-.missile.fast {
-  width: 27px;
-  height: 9px;
-  --missile-color: #22d3c5;
-  border-radius: 0 50% 50% 0;
-}
-
-
-.missile.big {
-  width: 120px;
-  height: 72px;
-  background: #05070c;
-  border: 1px solid #718096;
-  border-radius: 0 50% 50% 0;
-}
-
+/* 追加：特殊ミサイルの黄色い正方形 */
 .special-square {
   position: absolute;
   width: 16px;
@@ -198,21 +181,25 @@ h1 {
   border: 1px solid #fff19a;
   z-index: 6;
   pointer-events: none;
-  box-shadow: 0 0 12px #ffd928, 0 0 24px #ffd928;
+  box-shadow: 0 0 7px rgba(255, 217, 40, 0.7);
 }
 
+/* 追加：感知時の白い点滅 */
 .special-square.flash-white {
-  background: #fff;
-  border-color: #fff;
-  box-shadow: 0 0 18px #fff, 0 0 32px #fff;
+  background: #ffffff;
+  border-color: #ffffff;
+  box-shadow: 0 0 12px #ffffff;
 }
 
+/* 追加：特殊ミサイルのビーム */
 .special-beam {
   position: absolute;
   z-index: 3;
   pointer-events: none;
   background: #fff36a;
-  box-shadow: 0 0 10px #fff36a, 0 0 24px #ffd928;
+  box-shadow:
+    0 0 5px #fff36a,
+    0 0 12px #ffcf33;
 }
 
 #message {
@@ -235,14 +222,32 @@ h1 {
 }
 
 .controls {
-  display: none;
+  display: grid;
+  grid-template-columns: repeat(3, 48px);
+  justify-content: center;
+  gap: 5px;
+  margin-top: 10px;
 }
 
-.help {
-  margin-top: 8px;
-  color: #8190aa;
-  font-size: 11px;
-  line-height: 1.6;
+.controls button {
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: #29364b;
+  color: white;
+  font-size: 20px;
+  touch-action: none;
+}
+
+.controls .empty {
+  visibility: hidden;
+}
+
+@media (min-width: 600px) {
+  .controls {
+    display: none;
+  }
 }
 
 @media (max-height: 650px) {
@@ -275,12 +280,13 @@ h1 {
     padding: 9px;
   }
 
-  .help {
-    margin-top: 4px;
+  .controls {
+    margin-top: 5px;
   }
 }
 </style>
 </head>
+
 <body>
 <main class="game">
   <h1>MISSILE SURVIVOR</h1>
@@ -317,19 +323,12 @@ h1 {
     <button data-dir="down">↓</button>
     <button data-dir="right">→</button>
   </div>
-
-  <div class="help">
-    画面のどこでもフリックして1マス移動<br>
-    PCでは矢印キー・WASDでも操作できます
-  </div>
 </main>
 
 <script>
 "use strict";
 
 const SIZE = 6;
-const SPECIAL_COOLDOWN = 5000;
-const SPECIAL_RANDOM_CHANCE = 1 / 30;
 
 const stage = document.getElementById("stage");
 const grid = document.getElementById("grid");
@@ -348,15 +347,16 @@ for (let i = 0; i < SIZE * SIZE; i++) {
 
 let player = { x: 2, y: 2 };
 let missiles = [];
-let specialMissiles = [];
 let running = false;
 let startTime = 0;
 let previousTime = 0;
 let lastSpawnTime = 0;
-let lastSpecialSpawnTime = 0;
 let score = 0;
 let best = readBest();
 let animationId = null;
+
+/* 追加：特殊ミサイル専用の状態 */
+let specialMissiles = [];
 let audioContext = null;
 
 bestElement.textContent = best;
@@ -397,53 +397,38 @@ function getLayout() {
 
 function drawPlayer() {
   const g = getLayout();
+  const w = g.cellWidth;
+  const h = g.cellHeight;
 
   playerElement.style.left =
-    (g.gridLeft + player.x * g.cellWidth + 5) + "px";
+    (g.gridLeft + player.x * w + 5) + "px";
   playerElement.style.top =
-    (g.gridTop + player.y * g.cellHeight + 5) + "px";
-  playerElement.style.width = (g.cellWidth - 10) + "px";
-  playerElement.style.height = (g.cellHeight - 10) + "px";
+    (g.gridTop + player.y * h + 5) + "px";
+  playerElement.style.width = (w - 10) + "px";
+  playerElement.style.height = (h - 10) + "px";
 }
 
 function drawMissile(m) {
-  m.element.style.left = (m.x - m.baseWidth / 2) + "px";
-  m.element.style.top = (m.y - m.baseHeight / 2) + "px";
+  m.element.style.left = (m.x - m.w / 2) + "px";
+  m.element.style.top = (m.y - m.h / 2) + "px";
 }
 
 function render() {
   drawPlayer();
   for (const m of missiles) drawMissile(m);
-  for (const special of specialMissiles) {
-    drawSpecialMissile(special);
-  }
 }
 
+/* 既存：普通・速い・でかいミサイルの生成処理 */
 function spawnMissile() {
   const g = getLayout();
   const side = Math.floor(Math.random() * 4);
   const lane = Math.floor(Math.random() * SIZE);
-  const roll = Math.random();
 
+  const roll = Math.random();
   const type =
     roll < 3 / 4 ? "normal" :
     roll < 11 / 12 ? "fast" :
     "big";
-
-  if (
-    type === "big" &&
-    missiles.filter(m => m.type === "big").length >= 2
-  ) {
-    return;
-  }
-
-  const dimensions = {
-    normal: { width: 30, height: 18, speed: 190 },
-    fast: { width: 27, height: 9, speed: 330 },
-    big: { width: 120, height: 72, speed: 77 }
-  };
-
-  const d = dimensions[type];
 
   const m = {
     type,
@@ -452,43 +437,61 @@ function spawnMissile() {
     vx: 0,
     vy: 0,
     angle: 0,
-    baseWidth: d.width,
-    baseHeight: d.height,
-    width: d.width,
-    height: d.height,
-    speed: d.speed,
+    w: 30,
+    h: 18,
+    speed: 190,
     element: document.createElement("div")
   };
 
-  m.element.className = "missile " + type;
+  if (type === "fast") {
+    m.w = 27;
+    m.h = 9;
+    m.speed = 330;
+    m.element.style.background = "#22d3c5";
+  } else if (type === "normal") {
+    m.w = 30;
+    m.h = 18;
+    m.speed = 190;
+    m.element.style.background = "#ed1472";
+  } else if (type === "big") {
+    m.w = 120;
+    m.h = 72;
+    m.speed = 77;
+    m.element.style.background = "#05070c";
+    m.element.style.border = "1px solid #718096";
+  }
+
+  m.element.className = "missile";
+  m.element.style.width = m.w + "px";
+  m.element.style.height = m.h + "px";
 
   if (side === 0) {
-    m.x = -m.width / 2;
+    m.x = -m.w / 2;
     m.y = type === "big"
       ? g.gridTop + lane * g.cellHeight
       : g.gridTop + (lane + 0.5) * g.cellHeight;
-    m.vx = d.speed;
+    m.vx = m.speed;
     m.angle = 0;
   } else if (side === 1) {
-    m.x = g.width + m.width / 2;
+    m.x = g.width + m.w / 2;
     m.y = type === "big"
       ? g.gridTop + lane * g.cellHeight
       : g.gridTop + (lane + 0.5) * g.cellHeight;
-    m.vx = -d.speed;
+    m.vx = -m.speed;
     m.angle = 180;
   } else if (side === 2) {
     m.x = type === "big"
       ? g.gridLeft + lane * g.cellWidth
       : g.gridLeft + (lane + 0.5) * g.cellWidth;
-    m.y = -m.width / 2;
-    m.vy = d.speed;
+    m.y = -m.w / 2;
+    m.vy = m.speed;
     m.angle = 90;
   } else {
     m.x = type === "big"
       ? g.gridLeft + lane * g.cellWidth
       : g.gridLeft + (lane + 0.5) * g.cellWidth;
-    m.y = g.height + m.width / 2;
-    m.vy = -d.speed;
+    m.y = g.height + m.w / 2;
+    m.vy = -m.speed;
     m.angle = -90;
   }
 
@@ -498,6 +501,329 @@ function spawnMissile() {
   drawMissile(m);
 }
 
+/* =========================================================
+   追加：特殊ミサイル
+   ========================================================= */
+
+/* 効果音。「ピッ」「ピッ」「ビー」に使う */
+function playSpecialSound(frequency, duration, volume = 0.07) {
+  try {
+    if (!audioContext) {
+      const AudioContextClass =
+        window.AudioContext || window.webkitAudioContext;
+
+      if (!AudioContextClass) return;
+      audioContext = new AudioContextClass();
+    }
+
+    if (audioContext.state === "suspended") {
+      audioContext.resume();
+    }
+
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const now = audioContext.currentTime;
+
+    oscillator.type = "square";
+    oscillator.frequency.setValueAtTime(frequency, now);
+
+    gain.gain.setValueAtTime(volume, now);
+    gain.gain.setValueAtTime(volume, now + duration * 0.75);
+    gain.gain.linearRampToValueAtTime(0.001, now + duration);
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+
+    oscillator.start(now);
+    oscillator.stop(now + duration);
+  } catch {}
+}
+
+/*
+特殊ミサイルの方向：
+horizontal = 左右から来て、上下の外側を水平移動
+vertical   = 上下から来て、左右の外側を垂直移動
+
+プレイヤーのマスの中心に到達したら停止し、
+白く2回点滅したあと、ビームを発射する。
+*/
+function spawnSpecialMissile() {
+  const g = getLayout();
+
+  const fromHorizontal = Math.random() < 0.5;
+  const fromStart = Math.random() < 0.5;
+
+  const special = {
+    axis: fromHorizontal ? "horizontal" : "vertical",
+    direction: fromStart ? 1 : -1,
+
+    x: 0,
+    y: 0,
+
+    speed: 150,
+    phase: "moving",
+    phaseStart: performance.now(),
+
+    targetLane: 0,
+    beamOn: false,
+    flashStep: -1,
+
+    squares: [],
+    beamElement: document.createElement("div")
+  };
+
+  special.beamElement.className = "special-beam";
+  special.beamElement.style.display = "none";
+  stage.appendChild(special.beamElement);
+
+  for (let i = 0; i < 2; i++) {
+    const square = document.createElement("div");
+    square.className = "special-square";
+    stage.appendChild(square);
+    special.squares.push(square);
+  }
+
+  if (special.axis === "horizontal") {
+    special.x = fromStart ? -8 : g.width + 8;
+    special.y = 0;
+  } else {
+    special.y = fromStart ? -8 : g.height + 8;
+    special.x = 0;
+  }
+
+  specialMissiles.push(special);
+  drawSpecialMissile(special);
+}
+
+/* 黄色い2つの正方形とビームを描画 */
+function drawSpecialMissile(special) {
+  const g = getLayout();
+  const squareSize = 16;
+
+  if (special.axis === "horizontal") {
+    const upperY = g.gridTop - squareSize;
+    const lowerY = g.gridTop + g.gridHeight;
+
+    special.squares[0].style.left =
+      (special.x - squareSize / 2) + "px";
+    special.squares[0].style.top = upperY + "px";
+
+    special.squares[1].style.left =
+      (special.x - squareSize / 2) + "px";
+    special.squares[1].style.top = lowerY + "px";
+  } else {
+    const leftX = g.gridLeft - squareSize;
+    const rightX = g.gridLeft + g.gridWidth;
+
+    special.squares[0].style.left = leftX + "px";
+    special.squares[0].style.top =
+      (special.y - squareSize / 2) + "px";
+
+    special.squares[1].style.left = rightX + "px";
+    special.squares[1].style.top =
+      (special.y - squareSize / 2) + "px";
+  }
+
+  const isWhite =
+    special.phase === "flash" &&
+    (special.flashStep === 0 || special.flashStep === 2);
+
+  for (const square of special.squares) {
+    square.classList.toggle("flash-white", isWhite);
+  }
+
+  drawSpecialBeam(special);
+}
+
+/* ビームはマスの中心を通す */
+function drawSpecialBeam(special) {
+  const g = getLayout();
+  const beam = special.beamElement;
+
+  if (special.phase !== "beam" || !special.beamOn) {
+    beam.style.display = "none";
+    return;
+  }
+
+  beam.style.display = "block";
+
+  if (special.axis === "horizontal") {
+    const centerX =
+      g.gridLeft + (special.targetLane + 0.5) * g.cellWidth;
+
+    beam.style.left = (centerX - 2.5) + "px";
+    beam.style.top = (g.gridTop - 8) + "px";
+    beam.style.width = "5px";
+    beam.style.height = (g.gridHeight + 16) + "px";
+  } else {
+    const centerY =
+      g.gridTop + (special.targetLane + 0.5) * g.cellHeight;
+
+    beam.style.left = (g.gridLeft - 8) + "px";
+    beam.style.top = (centerY - 2.5) + "px";
+    beam.style.width = (g.gridWidth + 16) + "px";
+    beam.style.height = "5px";
+  }
+}
+
+/*
+プレイヤーの現在位置を狙う。
+感知したら正方形を停止させ、狙ったマスの位置を固定する。
+*/
+function detectPlayer(special) {
+  const g = getLayout();
+
+  if (special.axis === "horizontal") {
+    const targetX =
+      g.gridLeft + (player.x + 0.5) * g.cellWidth;
+
+    const distance = targetX - special.x;
+
+    if (
+      (special.direction === 1 && distance >= 0 &&
+        distance <= special.speed * 0.05 + 1) ||
+      (special.direction === -1 && distance <= 0 &&
+        distance >= -(special.speed * 0.05 + 1))
+    ) {
+      special.x = targetX;
+      special.targetLane = player.x;
+      beginSpecialFlash(special);
+    }
+  } else {
+    const targetY =
+      g.gridTop + (player.y + 0.5) * g.cellHeight;
+
+    const distance = targetY - special.y;
+
+    if (
+      (special.direction === 1 && distance >= 0 &&
+        distance <= special.speed * 0.05 + 1) ||
+      (special.direction === -1 && distance <= 0 &&
+        distance >= -(special.speed * 0.05 + 1))
+    ) {
+      special.y = targetY;
+      special.targetLane = player.y;
+      beginSpecialFlash(special);
+    }
+  }
+}
+
+/* 感知後：白く2回点滅 */
+function beginSpecialFlash(special) {
+  special.phase = "flash";
+  special.phaseStart = performance.now();
+  special.flashStep = 0;
+
+  playSpecialSound(900, 0.09);
+}
+
+/*
+更新処理：
+白点滅を2回（4段階）→「ピッ、ピッ、ビー」→終了。
+ビームは短く2回点滅してから長く照射する。
+*/
+function updateSpecialMissiles(now, dt) {
+  const g = getLayout();
+  const remaining = [];
+
+  for (const special of specialMissiles) {
+    if (special.phase === "moving") {
+      if (special.axis === "horizontal") {
+        special.x += special.direction * special.speed * dt;
+      } else {
+        special.y += special.direction * special.speed * dt;
+      }
+
+      detectPlayer(special);
+
+      if (special.phase === "moving") {
+        const outside = special.axis === "horizontal"
+          ? (special.x < -30 || special.x > g.width + 30)
+          : (special.y < -30 || special.y > g.height + 30);
+
+        if (outside) {
+          removeSpecialMissile(special);
+          continue;
+        }
+      }
+    }
+
+    if (special.phase === "flash") {
+      const elapsed = now - special.phaseStart;
+      const step = Math.floor(elapsed / 150);
+
+      if (step !== special.flashStep && step < 4) {
+        special.flashStep = step;
+
+        if (step === 0 || step === 2) {
+          playSpecialSound(900, 0.08);
+        }
+      }
+
+      if (elapsed >= 600) {
+        special.phase = "beam";
+        special.phaseStart = now;
+        special.beamOn = true;
+        special.flashStep = -1;
+
+        // 最初の短い「ピッ」
+        playSpecialSound(650, 0.12);
+      }
+    } else if (special.phase === "beam") {
+      const elapsed = now - special.phaseStart;
+
+      if (elapsed < 120) {
+        special.beamOn = true;
+      } else if (elapsed < 240) {
+        special.beamOn = false;
+      } else if (elapsed < 360) {
+        if (special.beamOn === false) {
+          playSpecialSound(650, 0.12);
+        }
+        special.beamOn = true;
+      } else if (elapsed < 480) {
+        special.beamOn = false;
+      } else if (elapsed < 1050) {
+        if (!special.beamOn) {
+          playSpecialSound(420, 0.55, 0.09);
+        }
+        special.beamOn = true;
+      } else {
+        removeSpecialMissile(special);
+        continue;
+      }
+    }
+
+    drawSpecialMissile(special);
+    remaining.push(special);
+  }
+
+  specialMissiles = remaining;
+}
+
+function removeSpecialMissile(special) {
+  for (const square of special.squares) {
+    square.remove();
+  }
+  special.beamElement.remove();
+}
+
+/* ビームが実際に照射中かを確認 */
+function checkSpecialCollision() {
+  return specialMissiles.some(special => {
+    if (special.phase !== "beam" || !special.beamOn) {
+      return false;
+    }
+
+    if (special.axis === "horizontal") {
+      return player.x === special.targetLane;
+    }
+
+    return player.y === special.targetLane;
+  });
+}
+
+/* 既存ミサイルの当たり判定は変更しない */
 function checkCollision() {
   const g = getLayout();
 
@@ -507,15 +833,19 @@ function checkCollision() {
   const bottom = top + g.cellHeight - 10;
 
   return missiles.some(m => {
+    const vertical = m.angle === 90 || m.angle === -90;
+    const w = vertical ? m.h : m.w;
+    const h = vertical ? m.w : m.h;
+
     return (
-      m.x + m.width / 2 > left &&
-      m.x - m.width / 2 < right &&
-      m.y + m.height / 2 > top &&
-      m.y - m.height / 2 < bottom
+      m.x + w / 2 > left &&
+      m.x - w / 2 < right &&
+      m.y + h / 2 > top &&
+      m.y - h / 2 < bottom
     );
   });
 }
-  
+
 function movePlayer(dx, dy) {
   if (!running) return;
 
@@ -531,267 +861,6 @@ function movePlayer(dx, dy) {
   if (checkCollision() || checkSpecialCollision()) {
     endGame();
   }
-}
-
-function playSpecialSound(frequency, duration, volume = 0.07) {
-  try {
-    const AudioContextClass =
-      window.AudioContext || window.webkitAudioContext;
-
-    if (!AudioContextClass) return;
-
-    if (!audioContext) audioContext = new AudioContextClass();
-    if (audioContext.state === "suspended") audioContext.resume();
-
-    const oscillator = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-
-    oscillator.type = "square";
-    oscillator.frequency.value = frequency;
-    gain.gain.value = volume;
-    gain.gain.setTargetAtTime(
-      0,
-      audioContext.currentTime + duration,
-      0.025
-    );
-
-    oscillator.connect(gain);
-    gain.connect(audioContext.destination);
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + duration + 0.1);
-  } catch {}
-}
-
-function spawnSpecialMissile() {
-  const g = getLayout();
-  const horizontal = Math.random() < 0.5;
-  const direction = Math.random() < 0.5 ? 1 : -1;
-
-  const special = {
-    horizontal,
-    direction,
-    phase: "approach",
-    phaseStart: 0,
-    flashStep: 0,
-    beamOn: false,
-    targetLane: null,
-    x: horizontal
-      ? (direction === 1 ? -24 : g.width + 24)
-      : 0,
-    y: horizontal
-      ? 0
-      : (direction === 1 ? -24 : g.height + 24),
-    speed: 250,
-    squares: [
-      document.createElement("div"),
-      document.createElement("div")
-    ],
-    beam: document.createElement("div")
-  };
-
-  special.squares.forEach(square => {
-    square.className = "special-square";
-    stage.appendChild(square);
-  });
-
-  special.beam.className = "special-beam";
-  special.beam.style.display = "none";
-  stage.appendChild(special.beam);
-
-  if (horizontal) {
-    special.y = direction === 1
-      ? g.gridTop - 10
-      : g.gridTop + g.gridHeight + 10;
-  } else {
-    special.x = direction === 1
-      ? g.gridLeft - 10
-      : g.gridLeft + g.gridWidth + 10;
-  }
-
-  specialMissiles.push(special);
-  drawSpecialMissile(special);
-}
-
-
-function drawSpecialMissile(special) {
-  const g = getLayout();
-  const size = 16;
-
-  if (special.phase === "flash") {
-    special.squares.forEach(square => {
-      square.classList.toggle(
-        "flash-white",
-        special.flashStep === 0 || special.flashStep === 2
-      );
-    });
-  } else {
-    special.squares.forEach(square => {
-      square.classList.remove("flash-white");
-    });
-  }
-
-  let positions;
-
-  if (special.horizontal) {
-    positions = [
-      { x: special.x, y: g.gridTop - 10 },
-      { x: special.x, y: g.gridTop + g.gridHeight + 10 }
-    ];
-  } else {
-    positions = [
-      { x: g.gridLeft - 10, y: special.y },
-      { x: g.gridLeft + g.gridWidth + 10, y: special.y }
-    ];
-  }
-
-  special.squares.forEach((square, i) => {
-    square.style.left = (positions[i].x - size / 2) + "px";
-    square.style.top = (positions[i].y - size / 2) + "px";
-  });
-
-  drawSpecialBeam(special, g);
-}
-
-function drawSpecialBeam(special, g = getLayout()) {
-  if (special.phase !== "beam" || !special.beamOn) {
-    special.beam.style.display = "none";
-    return;
-  }
-
-  special.beam.style.display = "block";
-
-  if (special.horizontal) {
-    const x = g.gridLeft + (special.targetLane + 0.5) * g.cellWidth;
-    special.beam.style.left = (x - 3) + "px";
-    special.beam.style.top = g.gridTop + "px";
-    special.beam.style.width = "6px";
-    special.beam.style.height = g.gridHeight + "px";
-  } else {
-    const y = g.gridTop + (special.targetLane + 0.5) * g.cellHeight;
-    special.beam.style.left = g.gridLeft + "px";
-    special.beam.style.top = (y - 3) + "px";
-    special.beam.style.width = g.gridWidth + "px";
-    special.beam.style.height = "6px";
-  }
-}
-
-function beginSpecialFlash(special, now) {
-  special.phase = "flash";
-  special.phaseStart = now;
-  special.flashStep = 0;
-  playSpecialSound(740, 0.12);
-}
-
-function detectPlayer(special, now) {
-  if (special.phase !== "approach") return;
-
-  const g = getLayout();
-  const playerCenterX =
-    g.gridLeft + (player.x + 0.5) * g.cellWidth;
-  const playerCenterY =
-    g.gridTop + (player.y + 0.5) * g.cellHeight;
-
-  if (special.horizontal) {
-    const distance = playerCenterX - special.x;
-
-    if (
-      Math.abs(distance) <= special.speed * 0.05 + 1 &&
-      Math.sign(distance) === special.direction
-    ) {
-      special.x = playerCenterX;
-      special.targetLane = player.x;
-      beginSpecialFlash(special, now);
-    }
-  } else {
-    const distance = playerCenterY - special.y;
-
-    if (
-      Math.abs(distance) <= special.speed * 0.05 + 1 &&
-      Math.sign(distance) === special.direction
-    ) {
-      special.y = playerCenterY;
-      special.targetLane = player.y;
-      beginSpecialFlash(special, now);
-    }
-  }
-}
-
-function updateSpecialMissiles(now, dt) {
-  const g = getLayout();
-  const remaining = [];
-
-  for (const special of specialMissiles) {
-    if (special.phase === "approach") {
-      if (special.horizontal) {
-        special.x += special.direction * special.speed * dt;
-      } else {
-        special.y += special.direction * special.speed * dt;
-      }
-
-      detectPlayer(special, now);
-
-      const outside = special.horizontal
-        ? (
-            special.direction === 1
-              ? special.x > g.width + 30
-              : special.x < -30
-          )
-        : (
-            special.direction === 1
-              ? special.y > g.height + 30
-              : special.y < -30
-          );
-
-      if (outside && special.phase === "approach") {
-        removeSpecialMissile(special);
-        continue;
-      }
-    } else if (special.phase === "flash") {
-      const elapsed = now - special.phaseStart;
-      special.flashStep = Math.min(3, Math.floor(elapsed / 150));
-
-      if (elapsed >= 600) {
-        special.phase = "beam";
-        special.phaseStart = now;
-        special.beamOn = true;
-        playSpecialSound(980, 0.22, 0.09);
-      }
-    
-    } else if (special.phase === "beam") {
-      const elapsed = now - special.phaseStart;
-
-      if (elapsed < 200) {
-        special.beamOn = true;
-      } else {
-        removeSpecialMissile(special);
-        continue;
-      }
-    }
-
-    drawSpecialMissile(special, g);
-    remaining.push(special);
-  }
-
-  specialMissiles = remaining;
-}
-
-function removeSpecialMissile(special) {
-  special.squares.forEach(square => square.remove());
-  special.beam.remove();
-}
-
-function checkSpecialCollision() {
-  return specialMissiles.some(special => {
-    if (special.phase !== "beam" || !special.beamOn) {
-      return false;
-    }
-
-    if (special.horizontal) {
-      return player.x === special.targetLane;
-    }
-
-    return player.y === special.targetLane;
-  });
 }
 
 function gameLoop(now) {
@@ -810,16 +879,13 @@ function gameLoop(now) {
 
   if (now - lastSpawnTime >= spawnInterval) {
     spawnMissile();
-    lastSpawnTime = now;
 
-    if (Math.random() < SPECIAL_RANDOM_CHANCE) {
+    /* 追加：既存ミサイルの抽選とは独立して1/20で特殊ミサイルを追加 */
+    if (Math.random() < 1 / 20) {
       spawnSpecialMissile();
     }
-  }
 
-  if (now - lastSpecialSpawnTime >= SPECIAL_COOLDOWN) {
-    spawnSpecialMissile();
-    lastSpecialSpawnTime = now;
+    lastSpawnTime = now;
   }
 
   const g = getLayout();
@@ -829,16 +895,14 @@ function gameLoop(now) {
     m.x += m.vx * speedFactor * dt;
     m.y += m.vy * speedFactor * dt;
 
-    
-const vertical = m.angle === 90 || m.angle === -90;
-const w = vertical ? m.height : m.width;
-const h = vertical ? m.width : m.height;
-
-const outside =
-  m.x + w / 2 < 0 ||
-  m.x - w / 2 > g.width ||
-  m.y + h / 2 < 0 ||
-  m.y - h / 2 > g.height;
+    const vertical = m.angle === 90 || m.angle === -90;
+    const halfW = (vertical ? m.h : m.w) / 2;
+    const halfH = (vertical ? m.w : m.h) / 2;
+    const outside =
+      m.x + halfW < 0 ||
+      m.x - halfW > g.width ||
+      m.y + halfH < 0 ||
+      m.y - halfH > g.height;
 
     if (outside) {
       m.element.remove();
@@ -849,6 +913,7 @@ const outside =
 
   missiles = remaining;
 
+  /* 追加：特殊ミサイルを更新 */
   updateSpecialMissiles(now, dt);
 
   if (checkCollision() || checkSpecialCollision()) {
@@ -866,10 +931,7 @@ function startGame() {
     animationId = null;
   }
 
-  for (const m of missiles) {
-    m.element.remove();
-  }
-
+  for (const m of missiles) m.element.remove();
   for (const special of specialMissiles) {
     removeSpecialMissile(special);
   }
@@ -883,7 +945,6 @@ function startGame() {
   startTime = performance.now();
   previousTime = startTime;
   lastSpawnTime = startTime;
-  lastSpecialSpawnTime = startTime;
 
   scoreElement.textContent = "0";
   timeElement.textContent = "0.0";
@@ -1004,6 +1065,7 @@ document.addEventListener("touchcancel", () => {
 }, { passive: false });
 
 startButton.addEventListener("click", startGame);
+
 window.addEventListener("resize", render);
 
 render();
