@@ -407,10 +407,8 @@ function drawPlayer() {
 }
 
 function drawMissile(m) {
-  m.element.style.width = m.width + "px";
-  m.element.style.height = m.height + "px";
-  m.element.style.left = (m.x - m.width / 2) + "px";
-  m.element.style.top = (m.y - m.height / 2) + "px";
+  m.element.style.left = (m.x - m.baseWidth / 2) + "px";
+  m.element.style.top = (m.y - m.baseHeight / 2) + "px";
 }
 
 function render() {
@@ -454,6 +452,8 @@ function spawnMissile() {
     vx: 0,
     vy: 0,
     angle: 0,
+    baseWidth: d.width,
+    baseHeight: d.height,
     width: d.width,
     height: d.height,
     speed: d.speed,
