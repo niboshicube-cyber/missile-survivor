@@ -1162,8 +1162,10 @@ function movePlayer(dx, dy) {
   addFlameTrail(oldX, oldY);
   drawPlayer();
 
-  if (checkCollision() || checkSpecialCollision()) {
-    endGame();
+  const hitMissile = getCollidingMissile();
+
+  if (hitMissile || checkSpecialCollision()) {
+    handlePlayerHit(hitMissile);
   }
 }
 
