@@ -407,6 +407,8 @@ function drawPlayer() {
 }
 
 function drawMissile(m) {
+  m.element.style.width = m.width + "px";
+  m.element.style.height = m.height + "px";
   m.element.style.left = (m.x - m.width / 2) + "px";
   m.element.style.top = (m.y - m.height / 2) + "px";
 }
@@ -499,21 +501,17 @@ function spawnMissile() {
 function checkCollision() {
   const g = getLayout();
 
-  const left = g.gridLeft + player.x * g.cellWidth;
-  const right = left + g.cellWidth;
-  const top = g.gridTop + player.y * g.cellHeight;
-  const bottom = top + g.cellHeight;
+  const left = g.gridLeft + player.x * g.cellWidth + 5;
+  const right = left + g.cellWidth - 10;
+  const top = g.gridTop + player.y * g.cellHeight + 5;
+  const bottom = top + g.cellHeight - 10;
 
   return missiles.some(m => {
-    const vertical = m.angle === 90 || m.angle === -90;
-    const w = vertical ? m.height : m.width;
-    const h = vertical ? m.width : m.height;
-
     return (
-      m.x + w / 2 > left &&
-      m.x - w / 2 < right &&
-      m.y + h / 2 > top &&
-      m.y - h / 2 < bottom
+      m.x + m.width / 2 > left &&
+      m.x - m.width / 2 < right &&
+      m.y + m.height / 2 > top &&
+      m.y - m.height / 2 < bottom
     );
   });
 }
