@@ -906,7 +906,7 @@ function handlePlayerHit(hitMissile = null) {
   endGame();
 }
 
-function checkCollision() {
+function getCollidingMissile() {
   const g = getLayout();
 
   const left = g.gridLeft + player.x * g.cellWidth + 5;
@@ -914,7 +914,7 @@ function checkCollision() {
   const top = g.gridTop + player.y * g.cellHeight + 5;
   const bottom = top + g.cellHeight - 10;
 
-  return missiles.some(m => {
+  return missiles.find(m => {
     const vertical = m.angle === 90 || m.angle === -90;
     const w = vertical ? m.h : m.w;
     const h = vertical ? m.w : m.h;
@@ -925,7 +925,7 @@ function checkCollision() {
       m.y + h / 2 > top &&
       m.y - h / 2 < bottom
     );
-  });
+  }) || null;
 }
 
 function movePlayer(dx, dy) {
@@ -940,8 +940,12 @@ function movePlayer(dx, dy) {
   player.y = ny;
   drawPlayer();
 
-  if (checkCollision() || checkSpecialCollision()) {
-    endGame();
+  const hitMissile = getCollidingMissile();
+
+  if (hitMissile) {
+    handlePlayerHit(hitMissile);
+  } else if (checkSpecialCollision()) {
+    handlePlayerHit();
   }
 }
 
