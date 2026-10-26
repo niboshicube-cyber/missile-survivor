@@ -1005,8 +1005,15 @@ function gameLoop(now) {
 
   updateSpecialMissiles(now, dt);
 
-  if (checkCollision() || checkSpecialCollision()) {
-    endGame();
+  const hitMissile = getCollidingMissile();
+
+  if (hitMissile) {
+    handlePlayerHit(hitMissile);
+    return;
+  }
+
+  if (checkSpecialCollision()) {
+    handlePlayerHit();
     return;
   }
 
