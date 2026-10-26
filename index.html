@@ -766,7 +766,7 @@ function updateSpecialMissiles(now, dt) {
         // 最初の短い「ピッ」
         playSpecialSound(650, 0.12);
       }
-    } else if (special.phase === "beam") {
+        } else if (special.phase === "beam") {
       const elapsed = now - special.phaseStart;
 
       if (elapsed < 120) {
@@ -780,9 +780,9 @@ function updateSpecialMissiles(now, dt) {
         special.beamOn = true;
       } else if (elapsed < 480) {
         special.beamOn = false;
-      } else if (elapsed < 1050) {
+      } else if (elapsed < 680) {
         if (!special.beamOn) {
-          playSpecialSound(420, 0.55, 0.09);
+          playSpecialSound(420, 0.2, 0.09);
         }
         special.beamOn = true;
       } else {
