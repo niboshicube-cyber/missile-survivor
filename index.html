@@ -199,6 +199,39 @@ h1 {
     0 0 12px #ffcf33;
 }
 
+.flame-trail {
+  position: absolute;
+  width: 8px;
+  height: 25px;
+  border-radius: 50% 50% 35% 35%;
+  background: linear-gradient(
+    to top,
+    #ff3b08 0%,
+    #ff7a00 40%,
+    #ffe45c 75%,
+    #fff8d6 100%
+  );
+  box-shadow:
+    0 0 5px #ff4b08,
+    0 0 11px #ff7a00,
+    0 0 17px rgba(255, 65, 0, 0.7);
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  pointer-events: none;
+  animation: flame-flicker 160ms infinite alternate;
+}
+
+@keyframes flame-flicker {
+  from {
+    transform: translate(-50%, -50%) scaleX(0.8) scaleY(0.9);
+    opacity: 0.8;
+  }
+  to {
+    transform: translate(-50%, -50%) scaleX(1.15) scaleY(1.08);
+    opacity: 1;
+  }
+}
+
 #message {
   min-height: 38px;
   padding: 10px 0 6px;
