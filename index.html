@@ -519,6 +519,24 @@ h1 {
     opacity: 0;
   }
 }
+
+body.slow-motion {
+  background: #292c35;
+}
+
+body.slow-motion #stage {
+  background: #343b49;
+  border-color: #596273;
+}
+
+body.slow-motion #grid {
+  background: #536174;
+  border-color: #a1a8b5;
+}
+
+body.slow-motion .cell {
+  border-color: #a1a8b5;
+}
 </style>
 </head>
 
@@ -871,6 +889,61 @@ function playSpecialSound(frequency, duration, volume = 0.07) {
     oscillator.start(now);
     oscillator.stop(now + duration);
   } catch {}
+}
+
+let slowMotionOscillator = null;
+let slowMotionGain = null;
+
+function startSlowMotionSound() {
+  if (slowMotionOscillator || !running) return;
+
+  try {
+    if (!audioContext) {
+      audioContext = new (
+        window.AudioContext || window.webkitAudioContext
+      )();
+    }
+
+    if (audioContext.state === "suspended") {
+      audioContext.resume();
+    }
+
+    const now = audioContext.currentTime;
+    slowMotionOscillator = audioContext.createOscillator();
+    slowMotionGain = audioContext.createGain();
+
+    slowMotionOscillator.type = "sawtooth";
+    slowMotionOscillator.frequency.setValueAtTime(65, now);
+    slowMotionGain.gain.setValueAtTime(0.0001, now);
+    slowMotionGain.gain.linearRampToValueAtTime(0.055, now + 0.15);
+
+    slowMotionOscillator.connect(slowMotionGain);
+    slowMotionGain.connect(audioContext.destination);
+    slowMotionOscillator.start();
+  } catch (error) {
+    slowMotionOscillator = null;
+    slowMotionGain = null;
+  }
+}
+
+function stopSlowMotionSound() {
+  if (!slowMotionOscillator) return;
+
+  try {
+    const oscillator = slowMotionOscillator;
+    const gain = slowMotionGain;
+    const now = audioContext.currentTime;
+
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setTargetAtTime(0.0001, now, 0.035);
+    oscillator.stop(now + 0.15);
+
+    slowMotionOscillator = null;
+    slowMotionGain = null;
+  } catch (error) {
+    slowMotionOscillator = null;
+    slowMotionGain = null;
+  }
 }
 
 function spawnSpecialMissile() {
@@ -1372,7 +1445,36 @@ function activateElectromagneticWave() {
       hit: new Set()
     });
   });
-  playSpecialSound(520, 0.18, 0.12);
+  try {
+    if (!audioContext) {
+      audioContext = new (
+        window.AudioContext || window.webkitAudioContext
+      )();
+    }
+
+    if (audioContext.state === "suspended") {
+      audioContext.resume();
+    }
+
+    const now = audioContext.currentTime;
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    oscillator.type = "sawtooth";
+    oscillator.frequency.setValueAtTime(110, now);
+    oscillator.frequency.exponentialRampToValueAtTime(440, now + 0.22);
+    oscillator.frequency.exponentialRampToValueAtTime(75, now + 0.8);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.16, now + 0.12);
+    gain.gain.setTargetAtTime(0.001, now + 0.45, 0.15);
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+
+    oscillator.start(now);
+    oscillator.stop(now + 1.1);
+  } catch (error) {}
 }
 
 function updateElectromagneticWaves(now) {
@@ -1467,13 +1569,21 @@ function gameLoop(now) {
 
   const approachingThreat = electromagneticGauge >= 100 && getApproachingThreat();
   if (!approachingThreat) {
-    slowMotionBlocked = false;
-    slowMotionActive = false;
-  } else if (!slowMotionBlocked) {
-    slowMotionActive = true;
-  }
-  if (slowMotionActive) speedFactor *= 0.25;
+　  slowMotionBlocked = false;
+  　slowMotionActive = false;
+　} else if (!slowMotionBlocked) {
+  　slowMotionActive = true;
+　}
 
+　if (slowMotionActive) {
+  　speedFactor *= 0.25;
+  　document.body.classList.add("slow-motion");
+  　startSlowMotionSound();
+　} else {
+  　document.body.classList.remove("slow-motion");
+  　stopSlowMotionSound();
+　}
+  
   if (now - lastSpecialSpawnTime >= 5000) {
     spawnSpecialMissile();
     lastSpecialSpawnTime = now;
@@ -1581,6 +1691,9 @@ function endGame() {
   if (!running) return;
 
   running = false;
+  document.body.classList.remove("slow-motion");
+　stopSlowMotionSound();
+  
   for (const flame of flameTrails) {
   　flame.element.remove();
 　}
