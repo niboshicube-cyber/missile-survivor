@@ -221,6 +221,10 @@ h1 {
   animation: flame-flicker 120ms infinite alternate;
 }
 
+body.slow-motion .flame-trail {
+  animation-duration: 1200ms;
+}
+
 @keyframes flame-flicker {
   from {
     opacity: 0.75;
@@ -721,6 +725,7 @@ function addFlameTrail(x, y) {
       x2: x,
       y2: y,
       time: now,
+      age: 0,
       element: document.createElement("div")
     };
 
@@ -1105,21 +1110,22 @@ function detectPlayer(special) {
 function beginSpecialFlash(special) {
   special.phase = "flash";
   special.phaseStart = performance.now();
+  special.phaseElapsed = 0;
   special.flashStep = 0;
 
   playSpecialSound(900, 0.09);
 }
 
-function updateSpecialMissiles(now, dt) {
+function updateSpecialMissiles(now, dt, timeScale) {
   const g = getLayout();
   const remaining = [];
 
   for (const special of specialMissiles) {
     if (special.phase === "moving") {
       if (special.axis === "horizontal") {
-        special.x += special.direction * special.speed * dt;
+        special.x += special.direction * special.speed * dt * timeScale;
       } else {
-        special.y += special.direction * special.speed * dt;
+        special.y += special.direction * special.speed * dt * timeScale;
       }
 
       detectPlayer(special);
@@ -1137,7 +1143,8 @@ function updateSpecialMissiles(now, dt) {
     }
 
     if (special.phase === "flash") {
-      const elapsed = now - special.phaseStart;
+      special.phaseElapsed += dt * 1000 * timeScale;
+      const elapsed = special.phaseElapsed;
       const step = Math.floor(elapsed / 150);
 
       if (step !== special.flashStep && step < 4) {
@@ -1150,15 +1157,16 @@ function updateSpecialMissiles(now, dt) {
 
       if (elapsed >= 600) {
         special.phase = "beam";
+        special.phaseElapsed = 0;
         special.phaseStart = now;
         special.beamOn = true;
         special.flashStep = -1;
 
-        // 最初の短い「ピッ」
         playSpecialSound(650, 0.12);
       }
     } else if (special.phase === "beam") {
-      const elapsed = now - special.phaseStart;
+      special.phaseElapsed += dt * 1000 * timeScale;
+      const elapsed = special.phaseElapsed;
 
       if (elapsed < 200) {
         special.beamOn = true;
@@ -1310,15 +1318,17 @@ function getCollidingMissile() {
   }) || null;
 }
 
-function checkFlameCollisions() {
-  const now = performance.now();
+function checkFlameCollisions(dt, timeScale) {
   const g = getLayout();
 
   flameTrails = flameTrails.filter(flame => {
-    if (now - flame.time >= 500) {
+    flame.age += dt * 1000 * timeScale;
+
+    if (flame.age >= 500) {
       flame.element.remove();
       return false;
     }
+
     return true;
   });
 
@@ -1410,24 +1420,39 @@ function getApproachingThreat() {
   const playerBottom = py + g.cellHeight / 2;
 
   const regularThreat = missiles.some(m => {
-    if (m.vx === 0 && m.vy === 0) return false;
+    if (m.slowMotionDetected || (m.vx === 0 && m.vy === 0)) {
+      return false;
+    }
 
     const vertical = m.angle === 90 || m.angle === -90;
     const halfW = (vertical ? m.h : m.w) / 2;
     const halfH = (vertical ? m.w : m.h) / 2;
+
     const missileLeft = m.x - halfW;
     const missileRight = m.x + halfW;
     const missileTop = m.y - halfH;
     const missileBottom = m.y + halfH;
 
-    const gapX = Math.max(0, playerLeft - missileRight, missileLeft - playerRight);
-    const gapY = Math.max(0, playerTop - missileBottom, missileTop - playerBottom);
-    if (gapX > g.cellWidth || gapY > g.cellHeight) return false;
+    const gapX = Math.max(
+      0,
+      playerLeft - missileRight,
+      missileLeft - playerRight
+    );
+    const gapY = Math.max(
+      0,
+      playerTop - missileBottom,
+      missileTop - playerBottom
+    );
+
+    if (gapX > g.cellWidth || gapY > g.cellHeight) {
+      return false;
+    }
 
     const targetLeft = playerLeft - halfW;
     const targetRight = playerRight + halfW;
     const targetTop = playerTop - halfH;
     const targetBottom = playerBottom + halfH;
+
     let entryX = -Infinity;
     let exitX = Infinity;
     let entryY = -Infinity;
@@ -1455,77 +1480,28 @@ function getApproachingThreat() {
 
     const entryTime = Math.max(entryX, entryY);
     const exitTime = Math.min(exitX, exitY);
-    return exitTime >= Math.max(entryTime, 0);
+    const threat = exitTime >= Math.max(entryTime, 0);
+
+    if (threat) {
+      m.slowMotionDetected = true;
+    }
+
+    return threat;
   });
 
-  const beamThreat = specialMissiles.some(
-    special => special.phase === "flash"
-  );
+  const beamThreat = specialMissiles.some(special => {
+    if (
+      special.phase !== "flash" ||
+      special.slowMotionDetected
+    ) {
+      return false;
+    }
+
+    special.slowMotionDetected = true;
+    return true;
+  });
 
   return regularThreat || beamThreat;
-}
-
-function activateElectromagneticWave() {
-  if (!running || electromagneticGauge < 100) return;
-
-  electromagneticGauge = 0;
-  updateGaugeDisplay();
-  const g = getLayout();
-  const x = g.gridLeft + (player.x + 0.5) * g.cellWidth;
-  const y = g.gridTop + (player.y + 0.5) * g.cellHeight;
-  const maxRadius = Math.hypot(g.width, g.height) + 40;
-  const now = performance.now();
-
-  ["green", "white", "green"].forEach((color, index) => {
-    const element = document.createElement("div");
-    element.className = "electromagnetic-ring" + (color === "white" ? " white" : "");
-    element.style.left = x + "px";
-    element.style.top = y + "px";
-    element.style.width = "0px";
-    element.style.height = "0px";
-    stage.appendChild(element);
-    electromagneticWaves.push({
-      element,
-      x,
-      y,
-      color,
-      start: now + index * 85,
-      duration: 1300,
-      maxRadius,
-      previousRadius: 0,
-      hit: new Set()
-    });
-  });
-  try {
-    if (!audioContext) {
-      audioContext = new (
-        window.AudioContext || window.webkitAudioContext
-      )();
-    }
-
-    if (audioContext.state === "suspended") {
-      audioContext.resume();
-    }
-
-    const now = audioContext.currentTime;
-    const oscillator = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-
-    oscillator.type = "sawtooth";
-    oscillator.frequency.setValueAtTime(110, now);
-    oscillator.frequency.exponentialRampToValueAtTime(440, now + 0.22);
-    oscillator.frequency.exponentialRampToValueAtTime(75, now + 0.8);
-
-    gain.gain.setValueAtTime(0.001, now);
-    gain.gain.linearRampToValueAtTime(0.16, now + 0.12);
-    gain.gain.setTargetAtTime(0.001, now + 0.45, 0.15);
-
-    oscillator.connect(gain);
-    gain.connect(audioContext.destination);
-
-    oscillator.start(now);
-    oscillator.stop(now + 1.1);
-  } catch (error) {}
 }
 
 function updateElectromagneticWaves(now) {
@@ -1747,11 +1723,13 @@ function gameLoop(now) {
 
   missiles = remaining;
 
-checkFlameCollisions();
+  const timeScale = slowMotionActive ? 0.1 : 1;
 
-updateSpecialMissiles(now, dt);
-updateElectromagneticWaves(now);
+  checkFlameCollisions(dt, timeScale);
 
+  updateSpecialMissiles(now, dt, timeScale);
+  updateElectromagneticWaves(now);
+  
   const hitMissile = getCollidingMissile();
 
   if (hitMissile) {
