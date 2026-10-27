@@ -600,7 +600,7 @@ function addFlameTrail(x, y) {
   lastFlamePoint = { x, y };
 
   flameTrails = flameTrails.filter(flame => {
-    if (now - flame.time >= 3000) {
+    if (now - flame.time >= 500) {
       flame.element.remove();
       return false;
     }
@@ -1135,7 +1135,7 @@ function checkFlameCollisions() {
   const g = getLayout();
 
   flameTrails = flameTrails.filter(flame => {
-    if (now - flame.time >= 3000) {
+    if (now - flame.time >= 500) {
       flame.element.remove();
       return false;
     }
@@ -1305,9 +1305,10 @@ specialMissiles = [];
 for (const flame of flameTrails) {
   flame.element.remove();
 }
+flameTrails.forEach(flame => flame.element.remove());
 flameTrails = [];
 lastFlamePoint = { x: player.x, y: player.y };
-
+  
 player = { x: 2, y: 2 };
   playerElement.style.visibility = "visible";
   score = 0;
