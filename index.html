@@ -1402,9 +1402,9 @@ function isSecondOuterLayer() {
 
 function getApproachingThreat() {
   const g = getLayout();
+
   const px = g.gridLeft + (player.x + 0.5) * g.cellWidth;
   const py = g.gridTop + (player.y + 0.5) * g.cellHeight;
-  const threshold = Math.min(g.cellWidth, g.cellHeight) * 0.5;
 
   const playerLeft = px - g.cellWidth / 2;
   const playerRight = px + g.cellWidth / 2;
@@ -1413,11 +1413,6 @@ function getApproachingThreat() {
 
   return missiles.some(m => {
     if (m.vx === 0 && m.vy === 0) return false;
-
-    const dx = px - m.x;
-    const dy = py - m.y;
-
-    if (m.vx * dx + m.vy * dy <= 0) return false;
 
     const vertical = m.angle === 90 || m.angle === -90;
     const halfW = (vertical ? m.h : m.w) / 2;
@@ -1440,7 +1435,44 @@ function getApproachingThreat() {
       missileTop - playerBottom
     );
 
-    return gapX <= g.cellWidth && gapY <= g.cellHeight;
+    if (gapX > g.cellWidth || gapY > g.cellHeight) {
+      return false;
+    }
+
+    const targetLeft = playerLeft - halfW;
+    const targetRight = playerRight + halfW;
+    const targetTop = playerTop - halfH;
+    const targetBottom = playerBottom + halfH;
+
+    let entryX = -Infinity;
+    let exitX = Infinity;
+    let entryY = -Infinity;
+    let exitY = Infinity;
+
+    if (m.vx > 0) {
+      entryX = (targetLeft - m.x) / m.vx;
+      exitX = (targetRight - m.x) / m.vx;
+    } else if (m.vx < 0) {
+      entryX = (targetRight - m.x) / m.vx;
+      exitX = (targetLeft - m.x) / m.vx;
+    } else if (m.x < targetLeft || m.x > targetRight) {
+      return false;
+    }
+
+    if (m.vy > 0) {
+      entryY = (targetTop - m.y) / m.vy;
+      exitY = (targetBottom - m.y) / m.vy;
+    } else if (m.vy < 0) {
+      entryY = (targetBottom - m.y) / m.vy;
+      exitY = (targetTop - m.y) / m.vy;
+    } else if (m.y < targetTop || m.y > targetBottom) {
+      return false;
+    }
+
+    const entryTime = Math.max(entryX, entryY);
+    const exitTime = Math.min(exitX, exitY);
+
+    return exitTime >= Math.max(entryTime, 0);
   });
 }
 
