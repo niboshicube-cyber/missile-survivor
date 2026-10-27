@@ -201,34 +201,36 @@ h1 {
 
 .flame-trail {
   position: absolute;
-  width: 8px;
-  height: 25px;
-  border-radius: 50% 50% 35% 35%;
+  height: 9px;
+  border-radius: 50%;
   background: linear-gradient(
-    to top,
-    #ff3b08 0%,
-    #ff7a00 40%,
-    #ffe45c 75%,
-    #fff8d6 100%
+    to right,
+    #ff2600 0%,
+    #ff6500 25%,
+    #ffcf22 55%,
+    #fff5a0 75%,
+    #ff6500 100%
   );
   box-shadow:
-    0 0 5px #ff4b08,
-    0 0 11px #ff7a00,
-    0 0 17px rgba(255, 65, 0, 0.7);
+    0 0 4px #ff2600,
+    0 0 8px #ff6500,
+    0 0 13px rgba(255, 100, 0, 0.8);
   transform: translate(-50%, -50%);
   z-index: 2;
   pointer-events: none;
-  animation: flame-flicker 160ms infinite alternate;
+  animation: flame-flicker 120ms infinite alternate;
 }
 
 @keyframes flame-flicker {
   from {
-    transform: translate(-50%, -50%) scaleX(0.8) scaleY(0.9);
-    opacity: 0.8;
+    opacity: 0.75;
+    height: 7px;
+    filter: brightness(0.9);
   }
   to {
-    transform: translate(-50%, -50%) scaleX(1.15) scaleY(1.08);
     opacity: 1;
+    height: 11px;
+    filter: brightness(1.4);
   }
 }
 
@@ -524,6 +526,7 @@ let best = readBest();
 let animationId = null;
 let specialMissiles = [];
 let flameTrails = [];
+let lastFlamePoint = null;
 let audioContext = null;
 
 bestElement.textContent = best;
@@ -577,20 +580,32 @@ function drawPlayer() {
 }
 
 function addFlameTrail(x, y) {
-  const flame = {
-    x,
-    y,
-    element: document.createElement("div")
-  };
+  const now = performance.now();
 
-  flame.element.className = "flame-trail";
-  stage.appendChild(flame.element);
-  flameTrails.push(flame);
+  if (lastFlamePoint) {
+    const flame = {
+      x1: lastFlamePoint.x,
+      y1: lastFlamePoint.y,
+      x2: x,
+      y2: y,
+      time: now,
+      element: document.createElement("div")
+    };
 
-  while (flameTrails.length > 5) {
-    const oldest = flameTrails.shift();
-    oldest.element.remove();
+    flame.element.className = "flame-trail";
+    stage.appendChild(flame.element);
+    flameTrails.push(flame);
   }
+
+  lastFlamePoint = { x, y };
+
+  flameTrails = flameTrails.filter(flame => {
+    if (now - flame.time >= 3000) {
+      flame.element.remove();
+      return false;
+    }
+    return true;
+  });
 
   drawFlameTrails();
 }
@@ -599,11 +614,26 @@ function drawFlameTrails() {
   const g = getLayout();
 
   for (const flame of flameTrails) {
-    flame.element.style.left =
-      (g.gridLeft + (flame.x + 0.5) * g.cellWidth) + "px";
+    const x1 =
+      g.gridLeft + (flame.x1 + 0.5) * g.cellWidth;
+    const y1 =
+      g.gridTop + (flame.y1 + 0.5) * g.cellHeight;
 
-    flame.element.style.top =
-      (g.gridTop + (flame.y + 0.5) * g.cellHeight) + "px";
+    const x2 =
+      g.gridLeft + (flame.x2 + 0.5) * g.cellWidth;
+    const y2 =
+      g.gridTop + (flame.y2 + 0.5) * g.cellHeight;
+
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+    flame.element.style.width = length + "px";
+    flame.element.style.left = ((x1 + x2) / 2) + "px";
+    flame.element.style.top = ((y1 + y2) / 2) + "px";
+    flame.element.style.transform =
+      `translate(-50%, -50%) rotate(${angle}deg)`;
   }
 }
 
@@ -1101,33 +1131,52 @@ function getCollidingMissile() {
 }
 
 function checkFlameCollisions() {
-  const remaining = [];
+  const now = performance.now();
   const g = getLayout();
+
+  flameTrails = flameTrails.filter(flame => {
+    if (now - flame.time >= 3000) {
+      flame.element.remove();
+      return false;
+    }
+    return true;
+  });
+
+  const remaining = [];
 
   for (const m of missiles) {
     let hitFlame = false;
 
-    // 縦向きのミサイルは衝突判定用の幅と高さを入れ替える
     const vertical = m.angle === 90 || m.angle === -90;
     const halfW = (vertical ? m.h : m.w) / 2;
     const halfH = (vertical ? m.w : m.h) / 2;
 
-    for (const flame of flameTrails) {
-      const flameX =
-        g.gridLeft + (flame.x + 0.5) * g.cellWidth;
-      const flameY =
-        g.gridTop + (flame.y + 0.5) * g.cellHeight;
+    const missileLeft = m.x - halfW;
+    const missileRight = m.x + halfW;
+    const missileTop = m.y - halfH;
+    const missileBottom = m.y + halfH;
 
-      const flameLeft = flameX - 4;
-      const flameRight = flameX + 4;
-      const flameTop = flameY - 12.5;
-      const flameBottom = flameY + 12.5;
+    for (const flame of flameTrails) {
+      const x1 =
+        g.gridLeft + (flame.x1 + 0.5) * g.cellWidth;
+      const y1 =
+        g.gridTop + (flame.y1 + 0.5) * g.cellHeight;
+
+      const x2 =
+        g.gridLeft + (flame.x2 + 0.5) * g.cellWidth;
+      const y2 =
+        g.gridTop + (flame.y2 + 0.5) * g.cellHeight;
+
+      const flameLeft = Math.min(x1, x2) - 5;
+      const flameRight = Math.max(x1, x2) + 5;
+      const flameTop = Math.min(y1, y2) - 5;
+      const flameBottom = Math.max(y1, y2) + 5;
 
       if (
-        m.x + halfW > flameLeft &&
-        m.x - halfW < flameRight &&
-        m.y + halfH > flameTop &&
-        m.y - halfH < flameBottom
+        missileRight > flameLeft &&
+        missileLeft < flameRight &&
+        missileBottom > flameTop &&
+        missileTop < flameBottom
       ) {
         hitFlame = true;
         break;
@@ -1144,7 +1193,6 @@ function checkFlameCollisions() {
 
   missiles = remaining;
 }
-
 function movePlayer(dx, dy) {
   if (!running) return;
 
@@ -1153,13 +1201,10 @@ function movePlayer(dx, dy) {
 
   if (nx < 0 || nx >= SIZE || ny < 0 || ny >= SIZE) return;
 
-  const oldX = player.x;
-  const oldY = player.y;
-
   player.x = nx;
   player.y = ny;
 
-  addFlameTrail(oldX, oldY);
+  addFlameTrail(nx, ny);
   drawPlayer();
 
   const hitMissile = getCollidingMissile();
@@ -1261,6 +1306,7 @@ for (const flame of flameTrails) {
   flame.element.remove();
 }
 flameTrails = [];
+lastFlamePoint = { x: player.x, y: player.y };
 
 player = { x: 2, y: 2 };
   playerElement.style.visibility = "visible";
