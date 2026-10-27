@@ -1420,7 +1420,7 @@ function getApproachingThreat() {
   const playerBottom = py + g.cellHeight / 2;
 
   const regularThreat = missiles.some(m => {
-    if (m.slowMotionDetected || (m.vx === 0 && m.vy === 0)) {
+    if (m.slowMotionIgnored || (m.vx === 0 && m.vy === 0)) {
       return false;
     }
 
@@ -1492,7 +1492,7 @@ function getApproachingThreat() {
   const beamThreat = specialMissiles.some(special => {
     if (
       special.phase !== "flash" ||
-      special.slowMotionDetected
+      special.slowMotionIgnored
     ) {
       return false;
     }
@@ -1827,12 +1827,26 @@ const directions = {
 };
 
 function handleDirection(direction) {
+  if (slowMotionActive) {
+    for (const m of missiles) {
+      if (m.slowMotionDetected) {
+        m.slowMotionIgnored = true;
+      }
+    }
+
+    for (const special of specialMissiles) {
+      if (special.slowMotionDetected) {
+        special.slowMotionIgnored = true;
+      }
+    }
+  }
+
   slowMotionActive = false;
   slowMotionBlocked = true;
+
   const [dx, dy] = directions[direction];
   movePlayer(dx, dy);
 }
-
 document.querySelectorAll("[data-dir]").forEach(button => {
   button.addEventListener("click", () => {
     handleDirection(button.dataset.dir);
