@@ -1489,8 +1489,8 @@ function activateElectromagneticWave() {
       x,
       y,
       color,
-      start: now + index * 170,
-      duration: 650,
+      start: now + index * 85,
+      duration: 1300,
       maxRadius,
       previousRadius: 0,
       hit: new Set()
@@ -1698,7 +1698,7 @@ function gameLoop(now) {
   }
 
   if (slowMotionActive && approachingThreat) {
-    speedFactor *= 0.25;
+    speedFactor *= 0.1;
     document.body.classList.add("slow-motion");
     startSlowMotionSound();
   } else {
