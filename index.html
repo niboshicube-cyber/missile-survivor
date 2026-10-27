@@ -529,6 +529,37 @@ let flameTrails = [];
 let lastFlamePoint = null;
 let audioContext = null;
 
+function playExplosionSound() {
+  try {
+    if (!audioContext) {
+      audioContext = new (
+        window.AudioContext || window.webkitAudioContext
+      )();
+    }
+
+    if (audioContext.state === "suspended") {
+      audioContext.resume();
+    }
+
+    const now = audioContext.currentTime;
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    oscillator.type = "sawtooth";
+    oscillator.frequency.setValueAtTime(120, now);
+    oscillator.frequency.exponentialRampToValueAtTime(35, now + 0.22);
+
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+
+    oscillator.start(now);
+    oscillator.stop(now + 0.22);
+  } catch (error) {}
+}
+
 bestElement.textContent = best;
 
 function readBest() {
@@ -1019,6 +1050,8 @@ function checkSpecialCollision() {
 }
 
 function createExplosion(x, y) {
+  playExplosionSound();
+  
   const burst = document.createElement("div");
   burst.className = "explosion-burst";
   burst.style.left = x + "px";
@@ -1310,6 +1343,7 @@ flameTrails = [];
 lastFlamePoint = { x: player.x, y: player.y };
   
 player = { x: 2, y: 2 };
+lastFlamePoint = { x: player.x, y: player.y };
   playerElement.style.visibility = "visible";
   score = 0;
   running = true;
