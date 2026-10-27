@@ -234,6 +234,72 @@ h1 {
   }
 }
 
+#electromagneticGauge {
+  width: min(100%, 360px);
+  margin: 0 auto 8px;
+  text-align: left;
+}
+
+.gauge-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  color: #b8c8df;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.gauge-track {
+  width: 100%;
+  height: 9px;
+  overflow: hidden;
+  border: 1px solid #72859f;
+  border-radius: 8px;
+  background: #182235;
+}
+
+#gaugeFill {
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #168b48, #42ff8b);
+  transition: width 80ms linear;
+}
+
+#attackButton {
+  width: 100%;
+  margin-bottom: 5px;
+  padding: 10px;
+  border: 1px solid #37e979;
+  border-radius: 9px;
+  background: #164b32;
+  color: #d9ffe6;
+  font-size: 13px;
+  font-weight: 800;
+  touch-action: none;
+}
+
+#attackButton:disabled {
+  border-color: #425168;
+  background: #202b3d;
+  color: #77869b;
+}
+
+.electromagnetic-ring {
+  position: absolute;
+  z-index: 10;
+  border: 5px solid #31ff79;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-shadow: 0 0 10px currentColor, inset 0 0 8px currentColor;
+}
+
+.electromagnetic-ring.white {
+  border-color: #ffffff;
+  box-shadow: 0 0 14px #ffffff, inset 0 0 8px #ffffff;
+}
+
 #message {
   min-height: 38px;
   padding: 10px 0 6px;
@@ -481,6 +547,11 @@ h1 {
     <div id="player"></div>
   </div>
 
+  <div id="electromagneticGauge">
+    <div class="gauge-label"><span>ELECTROMAGNETIC WAVE</span><span id="gaugePercent">0%</span></div>
+    <div class="gauge-track"><div id="gaugeFill"></div></div>
+  </div>
+  <button id="attackButton" disabled>ゲージ満タンで電磁波攻撃</button>
   <div id="message">スタートしてミサイルを避けよう！</div>
   <button id="startButton">GAME START</button>
 
@@ -507,6 +578,9 @@ const timeElement = document.getElementById("time");
 const bestElement = document.getElementById("best");
 const messageElement = document.getElementById("message");
 const startButton = document.getElementById("startButton");
+const gaugeFill = document.getElementById("gaugeFill");
+const gaugePercent = document.getElementById("gaugePercent");
+const attackButton = document.getElementById("attackButton");
 
 for (let i = 0; i < SIZE * SIZE; i++) {
   const cell = document.createElement("div");
@@ -528,6 +602,10 @@ let specialMissiles = [];
 let flameTrails = [];
 let lastFlamePoint = null;
 let audioContext = null;
+let electromagneticGauge = 0;
+let electromagneticWaves = [];
+let slowMotionActive = false;
+let slowMotionBlocked = false;
 
 function playExplosionSound() {
   try {
@@ -1213,6 +1291,7 @@ function checkFlameCollisions() {
     }
 
     if (hitFlame) {
+      addGauge(5);
       createExplosion(m.x, m.y);
       m.element.remove();
     } else {
@@ -1222,6 +1301,129 @@ function checkFlameCollisions() {
 
   missiles = remaining;
 }
+function updateGaugeDisplay() {
+  const value = Math.max(0, Math.min(100, electromagneticGauge));
+  gaugeFill.style.width = value + "%";
+  gaugePercent.textContent = Math.floor(value) + "%";
+  attackButton.disabled = value < 100 || !running;
+  attackButton.textContent = value >= 100
+    ? "電磁波攻撃を発動！"
+    : "ゲージ満タンで電磁波攻撃";
+}
+
+function addGauge(amount) {
+  electromagneticGauge = Math.min(100, electromagneticGauge + amount);
+  updateGaugeDisplay();
+}
+
+function isOuterLayer() {
+  return player.x === 0 || player.x === SIZE - 1 ||
+    player.y === 0 || player.y === SIZE - 1;
+}
+
+function isSecondOuterLayer() {
+  return player.x === 1 || player.x === SIZE - 2 ||
+    player.y === 1 || player.y === SIZE - 2;
+}
+
+function getApproachingThreat() {
+  const g = getLayout();
+  const px = g.gridLeft + (player.x + 0.5) * g.cellWidth;
+  const py = g.gridTop + (player.y + 0.5) * g.cellHeight;
+  const threshold = Math.min(g.cellWidth, g.cellHeight) * 0.5;
+
+  return missiles.some(m => {
+    const dx = px - m.x;
+    const dy = py - m.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance > threshold || distance === 0) return false;
+    return m.vx * dx + m.vy * dy > 0;
+  });
+}
+
+function activateElectromagneticWave() {
+  if (!running || electromagneticGauge < 100) return;
+
+  electromagneticGauge = 0;
+  updateGaugeDisplay();
+  const g = getLayout();
+  const x = g.gridLeft + (player.x + 0.5) * g.cellWidth;
+  const y = g.gridTop + (player.y + 0.5) * g.cellHeight;
+  const maxRadius = Math.hypot(g.width, g.height) + 40;
+  const now = performance.now();
+
+  ["green", "white", "green"].forEach((color, index) => {
+    const element = document.createElement("div");
+    element.className = "electromagnetic-ring" + (color === "white" ? " white" : "");
+    element.style.left = x + "px";
+    element.style.top = y + "px";
+    element.style.width = "0px";
+    element.style.height = "0px";
+    stage.appendChild(element);
+    electromagneticWaves.push({
+      element,
+      x,
+      y,
+      color,
+      start: now + index * 170,
+      duration: 650,
+      maxRadius,
+      previousRadius: 0,
+      hit: new Set()
+    });
+  });
+  playSpecialSound(520, 0.18, 0.12);
+}
+
+function updateElectromagneticWaves(now) {
+  const remainingWaves = [];
+  const remainingMissiles = [];
+
+  for (const wave of electromagneticWaves) {
+    if (now < wave.start) {
+      remainingWaves.push(wave);
+      continue;
+    }
+
+    const progress = Math.min(1, (now - wave.start) / wave.duration);
+    const radius = wave.maxRadius * progress;
+    wave.element.style.width = radius * 2 + "px";
+    wave.element.style.height = radius * 2 + "px";
+
+    for (const m of missiles) {
+      if (wave.hit.has(m)) continue;
+      const vertical = m.angle === 90 || m.angle === -90;
+      const halfW = (vertical ? m.h : m.w) / 2;
+      const halfH = (vertical ? m.w : m.h) / 2;
+      const hitRadius = Math.hypot(halfW, halfH) + 5;
+      const distance = Math.hypot(m.x - wave.x, m.y - wave.y);
+      if (distance <= radius + hitRadius && distance >= wave.previousRadius - hitRadius) {
+        wave.hit.add(m);
+        m.electromagneticHit = true;
+      }
+    }
+
+    wave.previousRadius = radius;
+    if (progress >= 1) {
+      wave.element.remove();
+    } else {
+      remainingWaves.push(wave);
+    }
+  }
+
+  electromagneticWaves = remainingWaves;
+
+  for (const m of missiles) {
+    if (m.electromagneticHit) {
+      createExplosion(m.x, m.y);
+      m.element.remove();
+    } else {
+      remainingMissiles.push(m);
+    }
+  }
+  missiles = remainingMissiles;
+}
+
 function movePlayer(dx, dy) {
   if (!running) return;
 
@@ -1255,7 +1457,22 @@ function gameLoop(now) {
   timeElement.textContent = elapsed.toFixed(1);
 
   const spawnInterval = Math.max(180, 600 - elapsed * 7);
-  const speedFactor = Math.min(2.2, 1 + elapsed * 0.012);
+  let speedFactor = Math.min(2.2, 1 + elapsed * 0.012);
+
+  if (isOuterLayer()) {
+    addGauge(10 * dt);
+  } else if (isSecondOuterLayer()) {
+    addGauge(5 * dt);
+  }
+
+  const approachingThreat = electromagneticGauge >= 100 && getApproachingThreat();
+  if (!approachingThreat) {
+    slowMotionBlocked = false;
+    slowMotionActive = false;
+  } else if (!slowMotionBlocked) {
+    slowMotionActive = true;
+  }
+  if (slowMotionActive) speedFactor *= 0.25;
 
   if (now - lastSpecialSpawnTime >= 5000) {
     spawnSpecialMissile();
@@ -1300,6 +1517,7 @@ function gameLoop(now) {
 checkFlameCollisions();
 
 updateSpecialMissiles(now, dt);
+updateElectromagneticWaves(now);
 
   const hitMissile = getCollidingMissile();
 
@@ -1353,6 +1571,7 @@ lastFlamePoint = { x: player.x, y: player.y };
   timeElement.textContent = "0.0";
   messageElement.textContent = "四方からのミサイルを避けろ！";
   startButton.textContent = "RESTART";
+  updateGaugeDisplay();
 
   render();
   animationId = requestAnimationFrame(gameLoop);
@@ -1383,6 +1602,7 @@ function endGame() {
   }
 
   startButton.textContent = "TRY AGAIN";
+  updateGaugeDisplay();
 }
 
 const directions = {
@@ -1393,6 +1613,8 @@ const directions = {
 };
 
 function handleDirection(direction) {
+  slowMotionActive = false;
+  slowMotionBlocked = true;
   const [dx, dy] = directions[direction];
   movePlayer(dx, dy);
 }
@@ -1473,9 +1695,14 @@ document.addEventListener("touchcancel", () => {
 }, { passive: false });
 
 startButton.addEventListener("click", startGame);
+attackButton.addEventListener("pointerdown", event => {
+  event.preventDefault();
+  activateElectromagneticWave();
+});
 
 window.addEventListener("resize", render);
 
+updateGaugeDisplay();
 render();
 </script>
 </body>
