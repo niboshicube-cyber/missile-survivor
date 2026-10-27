@@ -1402,48 +1402,32 @@ function isSecondOuterLayer() {
 
 function getApproachingThreat() {
   const g = getLayout();
-
   const px = g.gridLeft + (player.x + 0.5) * g.cellWidth;
   const py = g.gridTop + (player.y + 0.5) * g.cellHeight;
-
   const playerLeft = px - g.cellWidth / 2;
   const playerRight = px + g.cellWidth / 2;
   const playerTop = py - g.cellHeight / 2;
   const playerBottom = py + g.cellHeight / 2;
 
-  return missiles.some(m => {
+  const regularThreat = missiles.some(m => {
     if (m.vx === 0 && m.vy === 0) return false;
 
     const vertical = m.angle === 90 || m.angle === -90;
     const halfW = (vertical ? m.h : m.w) / 2;
     const halfH = (vertical ? m.w : m.h) / 2;
-
     const missileLeft = m.x - halfW;
     const missileRight = m.x + halfW;
     const missileTop = m.y - halfH;
     const missileBottom = m.y + halfH;
 
-    const gapX = Math.max(
-      0,
-      playerLeft - missileRight,
-      missileLeft - playerRight
-    );
-
-    const gapY = Math.max(
-      0,
-      playerTop - missileBottom,
-      missileTop - playerBottom
-    );
-
-    if (gapX > g.cellWidth || gapY > g.cellHeight) {
-      return false;
-    }
+    const gapX = Math.max(0, playerLeft - missileRight, missileLeft - playerRight);
+    const gapY = Math.max(0, playerTop - missileBottom, missileTop - playerBottom);
+    if (gapX > g.cellWidth || gapY > g.cellHeight) return false;
 
     const targetLeft = playerLeft - halfW;
     const targetRight = playerRight + halfW;
     const targetTop = playerTop - halfH;
     const targetBottom = playerBottom + halfH;
-
     let entryX = -Infinity;
     let exitX = Infinity;
     let entryY = -Infinity;
@@ -1471,9 +1455,14 @@ function getApproachingThreat() {
 
     const entryTime = Math.max(entryX, entryY);
     const exitTime = Math.min(exitX, exitY);
-
     return exitTime >= Math.max(entryTime, 0);
   });
+
+  const beamThreat = specialMissiles.some(
+    special => special.phase === "flash"
+  );
+
+  return regularThreat || beamThreat;
 }
 
 function activateElectromagneticWave() {
@@ -1540,6 +1529,7 @@ function activateElectromagneticWave() {
 }
 
 function updateElectromagneticWaves(now) {
+  const g = getLayout();
   const remainingWaves = [];
   const remainingMissiles = [];
 
@@ -1551,23 +1541,61 @@ function updateElectromagneticWaves(now) {
 
     const progress = Math.min(1, (now - wave.start) / wave.duration);
     const radius = wave.maxRadius * progress;
+
     wave.element.style.width = radius * 2 + "px";
     wave.element.style.height = radius * 2 + "px";
 
     for (const m of missiles) {
       if (wave.hit.has(m)) continue;
+
       const vertical = m.angle === 90 || m.angle === -90;
       const halfW = (vertical ? m.h : m.w) / 2;
       const halfH = (vertical ? m.w : m.h) / 2;
       const hitRadius = Math.hypot(halfW, halfH) + 5;
       const distance = Math.hypot(m.x - wave.x, m.y - wave.y);
-      if (distance <= radius + hitRadius && distance >= wave.previousRadius - hitRadius) {
+
+      if (
+        distance <= radius + hitRadius &&
+        distance >= wave.previousRadius - hitRadius
+      ) {
         wave.hit.add(m);
         m.electromagneticHit = true;
       }
     }
 
+    for (const special of specialMissiles) {
+      if (wave.hit.has(special)) continue;
+
+      const bodyCenters = special.axis === "horizontal"
+        ? [
+            { x: special.x, y: g.gridTop - 8 },
+            { x: special.x, y: g.gridTop + g.gridHeight + 8 }
+          ]
+        : [
+            { x: g.gridLeft - 8, y: special.y },
+            { x: g.gridLeft + g.gridWidth + 8, y: special.y }
+          ];
+
+      const hit = bodyCenters.some(body => {
+        const distance = Math.hypot(
+          body.x - wave.x,
+          body.y - wave.y
+        );
+
+        return (
+          distance <= radius + 12 &&
+          distance >= wave.previousRadius - 12
+        );
+      });
+
+      if (hit) {
+        wave.hit.add(special);
+        special.electromagneticHit = true;
+      }
+    }
+
     wave.previousRadius = radius;
+
     if (progress >= 1) {
       wave.element.remove();
     } else {
@@ -1585,7 +1613,36 @@ function updateElectromagneticWaves(now) {
       remainingMissiles.push(m);
     }
   }
+
   missiles = remainingMissiles;
+
+  const remainingSpecialMissiles = [];
+
+  for (const special of specialMissiles) {
+    if (special.electromagneticHit) {
+      const g = getLayout();
+
+      const x = special.x;
+      const y = special.axis === "horizontal"
+        ? (
+            special.direction === 1
+              ? g.gridTop
+              : g.gridTop + g.gridHeight
+          )
+        : (
+            special.direction === 1
+              ? g.gridLeft
+              : g.gridLeft + g.gridWidth
+          );
+
+      createExplosion(x, y);
+      removeSpecialMissile(special);
+    } else {
+      remainingSpecialMissiles.push(special);
+    }
+  }
+
+  specialMissiles = remainingSpecialMissiles;
 }
 
 function movePlayer(dx, dy) {
