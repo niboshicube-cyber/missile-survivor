@@ -613,6 +613,11 @@ function drawPlayer() {
 function addFlameTrail(x, y) {
   const now = performance.now();
 
+  for (const flame of flameTrails) {
+    flame.element.remove();
+  }
+  flameTrails = [];
+
   if (lastFlamePoint) {
     const flame = {
       x1: lastFlamePoint.x,
@@ -629,15 +634,6 @@ function addFlameTrail(x, y) {
   }
 
   lastFlamePoint = { x, y };
-
-  flameTrails = flameTrails.filter(flame => {
-    if (now - flame.time >= 500) {
-      flame.element.remove();
-      return false;
-    }
-    return true;
-  });
-
   drawFlameTrails();
 }
 
@@ -1366,6 +1362,11 @@ function endGame() {
   if (!running) return;
 
   running = false;
+  for (const flame of flameTrails) {
+  　flame.element.remove();
+　}
+　flameTrails = [];
+　lastFlamePoint = null;
 
   if (animationId !== null) {
     cancelAnimationFrame(animationId);
