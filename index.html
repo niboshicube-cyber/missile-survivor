@@ -1504,6 +1504,39 @@ function getApproachingThreat() {
   return regularThreat || beamThreat;
 }
 
+function activateElectromagneticWave() {
+  if (!running || electromagneticGauge < 100) return;
+
+  electromagneticGauge = 0;
+  updateGaugeDisplay();
+
+  const g = getLayout();
+  const element = document.createElement("div");
+
+  element.className = "electromagnetic-ring white";
+  element.style.left =
+    (g.gridLeft + (player.x + 0.5) * g.cellWidth) + "px";
+  element.style.top =
+    (g.gridTop + (player.y + 0.5) * g.cellHeight) + "px";
+  element.style.width = "0px";
+  element.style.height = "0px";
+
+  stage.appendChild(element);
+
+  electromagneticWaves.push({
+    x: g.gridLeft + (player.x + 0.5) * g.cellWidth,
+    y: g.gridTop + (player.y + 0.5) * g.cellHeight,
+    start: performance.now(),
+    duration: 500,
+    maxRadius: Math.hypot(g.width, g.height),
+    previousRadius: 0,
+    hit: new Set(),
+    element
+  });
+
+  playSpecialSound(650, 0.2);
+}
+  
 function updateElectromagneticWaves(now) {
   const g = getLayout();
   const remainingWaves = [];
