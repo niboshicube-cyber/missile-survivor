@@ -22,42 +22,42 @@
 
 html {
   width: 100%;
-  height: 100%;
+  min-height: 100%;
   margin: 0;
-  overflow: hidden;
-  overscroll-behavior: none;
-  touch-action: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+  touch-action: pan-y;
 }
 
 body {
-  position: fixed;
-  inset: 0;
+  position: relative;
   width: 100%;
-  height: 100%;
-  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
   padding: 14px;
   display: flex;
   justify-content: center;
-  align-items: center;
-  overflow: hidden;
-  overscroll-behavior: none;
-  touch-action: none;
+  align-items: flex-start;
+  overflow: visible;
+  touch-action: pan-y;
   background: var(--background);
   color: #f4f7ff;
   font-family: system-ui, -apple-system, sans-serif;
   -webkit-user-select: none;
   user-select: none;
 }
-
+  
 .game {
   width: 100%;
   max-width: 430px;
-  max-height: 100%;
-  overflow: hidden;
+  max-height: none;
+  overflow: visible;
   text-align: center;
-  touch-action: none;
-  overscroll-behavior: none;
+  touch-action: pan-y;
+  overscroll-behavior: auto;
+  margin: auto;
 }
 
 h1 {
@@ -106,6 +106,11 @@ h1 {
   background: #26364f;
   border: 1px solid #354968;
   border-radius: 8px;
+  touch-action: pan-y;
+  overscroll-behavior: auto;
+}
+
+html.game-running #stage {
   touch-action: none;
   overscroll-behavior: none;
 }
@@ -219,6 +224,10 @@ h1 {
   z-index: 2;
   pointer-events: none;
   animation: flame-flicker 120ms infinite alternate;
+}
+
+body.slow-motion .flame-trail {
+  animation-duration: 1200ms;
 }
 
 @keyframes flame-flicker {
@@ -519,6 +528,75 @@ h1 {
     opacity: 0;
   }
 }
+
+body.slow-motion {
+  background: #292c35;
+}
+
+body.slow-motion #stage {
+  background: #343b49;
+  border-color: #596273;
+}
+
+body.slow-motion #grid {
+  background: #536174;
+  border-color: #a1a8b5;
+}
+
+body.slow-motion .cell {
+  border-color: #a1a8b5;
+}
+
+.mode-menu {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0 0 12px;
+}
+
+.mode-button {
+  padding: 10px 5px;
+  border: 1px solid #536781;
+  border-radius: 8px;
+  background: #202b3d;
+  color: #e4edfa;
+  font-size: 12px;
+  font-weight: 800;
+  touch-action: manipulation;
+}
+
+.mode-button.selected {
+  border-color: #42ff8b;
+  background: #164b32;
+  color: #d9ffe6;
+}
+
+.mode-menu.disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+html.game-running,
+html.game-running body {
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+html.game-running body {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  min-height: 0;
+}
+
+html.game-running .game {
+  max-height: 100%;
+  overflow: hidden;
+  touch-action: none;
+}
 </style>
 </head>
 
@@ -526,6 +604,13 @@ h1 {
 <main class="game">
   <h1>MISSILE SURVIVOR</h1>
   <div class="subtitle">DODGE THE MISSILES. SURVIVE.</div>
+  <div class="mode-menu" id="modeMenu">
+  <button class="mode-button selected" data-mode="all">ALL：全種類</button>
+  <button class="mode-button" data-mode="normal">NORMAL：通常</button>
+  <button class="mode-button" data-mode="fast">FAST：高速</button>
+  <button class="mode-button" data-mode="big">BIG：大型</button>
+  <button class="mode-button" data-mode="special">BEAM：特殊</button>
+</div>
 
   <div class="stats">
     <div class="stat">
@@ -588,6 +673,26 @@ for (let i = 0; i < SIZE * SIZE; i++) {
   grid.appendChild(cell);
 }
 
+let selectedMode = "all";
+
+const modeMenu = document.getElementById("modeMenu");
+
+modeMenu.querySelectorAll("[data-mode]").forEach(button => {
+  button.addEventListener("click", () => {
+    if (running) return;
+
+    selectedMode = button.dataset.mode;
+    best = readBest();
+    bestElement.textContent = best;
+
+    modeMenu.querySelectorAll("[data-mode]").forEach(item => {
+      item.classList.toggle(
+        "selected",
+        item.dataset.mode === selectedMode
+      );
+    });
+  });
+});
 let player = { x: 2, y: 2 };
 let missiles = [];
 let running = false;
@@ -642,7 +747,9 @@ bestElement.textContent = best;
 
 function readBest() {
   try {
-    return Number(localStorage.getItem("missileSurvivorBest")) || 0;
+    return Number(
+      localStorage.getItem("missileSurvivorBest_" + selectedMode)
+    ) || 0;
   } catch {
     return 0;
   }
@@ -650,10 +757,13 @@ function readBest() {
 
 function saveBest(value) {
   try {
-    localStorage.setItem("missileSurvivorBest", String(value));
+    localStorage.setItem(
+      "missileSurvivorBest_" + selectedMode,
+      String(value)
+    );
   } catch {}
 }
-
+  
 function getLayout() {
   const width = stage.clientWidth;
   const height = stage.clientHeight;
@@ -703,6 +813,7 @@ function addFlameTrail(x, y) {
       x2: x,
       y2: y,
       time: now,
+      age: 0,
       element: document.createElement("div")
     };
 
@@ -764,10 +875,14 @@ function spawnMissile() {
   const lane = Math.floor(Math.random() * SIZE);
 
   const roll = Math.random();
-  const type =
-    roll < 3 / 4 ? "normal" :
-    roll < 11 / 12 ? "fast" :
-    "big";
+
+  const type = selectedMode === "all"
+    ? (
+        roll < 3 / 4 ? "normal" :
+        roll < 11 / 12 ? "fast" :
+        "big"
+      )
+    : selectedMode;
 
   const m = {
     type,
@@ -778,24 +893,26 @@ function spawnMissile() {
     angle: 0,
     w: 30,
     h: 18,
-    speed: 190,
+    speed: 77,
+    baseSpeed: 190,
+    insideGrid: false,
     element: document.createElement("div")
   };
 
   if (type === "fast") {
     m.w = 27;
     m.h = 9;
-    m.speed = 330;
+    m.baseSpeed = 330;
     m.element.style.background = "#22d3c5";
   } else if (type === "normal") {
     m.w = 30;
     m.h = 18;
-    m.speed = 190;
+    m.baseSpeed = 190;
     m.element.style.background = "#ed1472";
   } else if (type === "big") {
     m.w = 120;
     m.h = 72;
-    m.speed = 77;
+    m.baseSpeed = 77;
     m.element.style.background = "#05070c";
     m.element.style.border = "1px solid #718096";
   }
@@ -871,6 +988,61 @@ function playSpecialSound(frequency, duration, volume = 0.07) {
     oscillator.start(now);
     oscillator.stop(now + duration);
   } catch {}
+}
+
+let slowMotionOscillator = null;
+let slowMotionGain = null;
+
+function startSlowMotionSound() {
+  if (slowMotionOscillator || !running) return;
+
+  try {
+    if (!audioContext) {
+      audioContext = new (
+        window.AudioContext || window.webkitAudioContext
+      )();
+    }
+
+    if (audioContext.state === "suspended") {
+      audioContext.resume();
+    }
+
+    const now = audioContext.currentTime;
+    slowMotionOscillator = audioContext.createOscillator();
+    slowMotionGain = audioContext.createGain();
+
+    slowMotionOscillator.type = "sawtooth";
+    slowMotionOscillator.frequency.setValueAtTime(65, now);
+    slowMotionGain.gain.setValueAtTime(0.0001, now);
+    slowMotionGain.gain.linearRampToValueAtTime(0.055, now + 0.15);
+
+    slowMotionOscillator.connect(slowMotionGain);
+    slowMotionGain.connect(audioContext.destination);
+    slowMotionOscillator.start();
+  } catch (error) {
+    slowMotionOscillator = null;
+    slowMotionGain = null;
+  }
+}
+
+function stopSlowMotionSound() {
+  if (!slowMotionOscillator) return;
+
+  try {
+    const oscillator = slowMotionOscillator;
+    const gain = slowMotionGain;
+    const now = audioContext.currentTime;
+
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setTargetAtTime(0.0001, now, 0.035);
+    oscillator.stop(now + 0.15);
+
+    slowMotionOscillator = null;
+    slowMotionGain = null;
+  } catch (error) {
+    slowMotionOscillator = null;
+    slowMotionGain = null;
+  }
 }
 
 function spawnSpecialMissile() {
@@ -1032,21 +1204,22 @@ function detectPlayer(special) {
 function beginSpecialFlash(special) {
   special.phase = "flash";
   special.phaseStart = performance.now();
+  special.phaseElapsed = 0;
   special.flashStep = 0;
 
   playSpecialSound(900, 0.09);
 }
 
-function updateSpecialMissiles(now, dt) {
+function updateSpecialMissiles(now, dt, timeScale) {
   const g = getLayout();
   const remaining = [];
 
   for (const special of specialMissiles) {
     if (special.phase === "moving") {
       if (special.axis === "horizontal") {
-        special.x += special.direction * special.speed * dt;
+        special.x += special.direction * special.speed * dt * timeScale;
       } else {
-        special.y += special.direction * special.speed * dt;
+        special.y += special.direction * special.speed * dt * timeScale;
       }
 
       detectPlayer(special);
@@ -1064,7 +1237,8 @@ function updateSpecialMissiles(now, dt) {
     }
 
     if (special.phase === "flash") {
-      const elapsed = now - special.phaseStart;
+      special.phaseElapsed += dt * 1000 * timeScale;
+      const elapsed = special.phaseElapsed;
       const step = Math.floor(elapsed / 150);
 
       if (step !== special.flashStep && step < 4) {
@@ -1077,15 +1251,16 @@ function updateSpecialMissiles(now, dt) {
 
       if (elapsed >= 600) {
         special.phase = "beam";
+        special.phaseElapsed = 0;
         special.phaseStart = now;
         special.beamOn = true;
         special.flashStep = -1;
 
-        // 最初の短い「ピッ」
         playSpecialSound(650, 0.12);
       }
     } else if (special.phase === "beam") {
-      const elapsed = now - special.phaseStart;
+      special.phaseElapsed += dt * 1000 * timeScale;
+      const elapsed = special.phaseElapsed;
 
       if (elapsed < 200) {
         special.beamOn = true;
@@ -1237,15 +1412,17 @@ function getCollidingMissile() {
   }) || null;
 }
 
-function checkFlameCollisions() {
-  const now = performance.now();
+function checkFlameCollisions(dt, timeScale) {
   const g = getLayout();
 
   flameTrails = flameTrails.filter(flame => {
-    if (now - flame.time >= 500) {
+    flame.age += dt * 1000 * timeScale;
+
+    if (flame.age >= 500) {
       flame.element.remove();
       return false;
     }
+
     return true;
   });
 
@@ -1326,19 +1503,99 @@ function isSecondOuterLayer() {
     player.y === 1 || player.y === SIZE - 2;
 }
 
+
 function getApproachingThreat() {
   const g = getLayout();
   const px = g.gridLeft + (player.x + 0.5) * g.cellWidth;
   const py = g.gridTop + (player.y + 0.5) * g.cellHeight;
-  const threshold = Math.min(g.cellWidth, g.cellHeight) * 0.5;
+  const playerLeft = px - g.cellWidth / 2;
+  const playerRight = px + g.cellWidth / 2;
+  const playerTop = py - g.cellHeight / 2;
+  const playerBottom = py + g.cellHeight / 2;
 
-  return missiles.some(m => {
-    const dx = px - m.x;
-    const dy = py - m.y;
-    const distance = Math.hypot(dx, dy);
-    if (distance > threshold || distance === 0) return false;
-    return m.vx * dx + m.vy * dy > 0;
+  const regularThreat = missiles.some(m => {
+    if (m.slowMotionIgnored || (m.vx === 0 && m.vy === 0)) {
+      return false;
+    }
+
+    const vertical = m.angle === 90 || m.angle === -90;
+    const halfW = (vertical ? m.h : m.w) / 2;
+    const halfH = (vertical ? m.w : m.h) / 2;
+
+    const missileLeft = m.x - halfW;
+    const missileRight = m.x + halfW;
+    const missileTop = m.y - halfH;
+    const missileBottom = m.y + halfH;
+
+    const gapX = Math.max(
+      0,
+      playerLeft - missileRight,
+      missileLeft - playerRight
+    );
+    const gapY = Math.max(
+      0,
+      playerTop - missileBottom,
+      missileTop - playerBottom
+    );
+
+    if (gapX > g.cellWidth || gapY > g.cellHeight) {
+      return false;
+    }
+
+    const targetLeft = playerLeft - halfW;
+    const targetRight = playerRight + halfW;
+    const targetTop = playerTop - halfH;
+    const targetBottom = playerBottom + halfH;
+
+    let entryX = -Infinity;
+    let exitX = Infinity;
+    let entryY = -Infinity;
+    let exitY = Infinity;
+
+    if (m.vx > 0) {
+      entryX = (targetLeft - m.x) / m.vx;
+      exitX = (targetRight - m.x) / m.vx;
+    } else if (m.vx < 0) {
+      entryX = (targetRight - m.x) / m.vx;
+      exitX = (targetLeft - m.x) / m.vx;
+    } else if (m.x < targetLeft || m.x > targetRight) {
+      return false;
+    }
+
+    if (m.vy > 0) {
+      entryY = (targetTop - m.y) / m.vy;
+      exitY = (targetBottom - m.y) / m.vy;
+    } else if (m.vy < 0) {
+      entryY = (targetBottom - m.y) / m.vy;
+      exitY = (targetTop - m.y) / m.vy;
+    } else if (m.y < targetTop || m.y > targetBottom) {
+      return false;
+    }
+
+    const entryTime = Math.max(entryX, entryY);
+    const exitTime = Math.min(exitX, exitY);
+    const threat = exitTime >= Math.max(entryTime, 0);
+
+    if (threat) {
+      m.slowMotionDetected = true;
+    }
+
+    return threat;
   });
+
+  const beamThreat = specialMissiles.some(special => {
+    if (
+      special.phase !== "flash" ||
+      special.slowMotionIgnored
+    ) {
+      return false;
+    }
+
+    special.slowMotionDetected = true;
+    return true;
+  });
+
+  return regularThreat || beamThreat;
 }
 
 function activateElectromagneticWave() {
@@ -1346,36 +1603,36 @@ function activateElectromagneticWave() {
 
   electromagneticGauge = 0;
   updateGaugeDisplay();
+
   const g = getLayout();
-  const x = g.gridLeft + (player.x + 0.5) * g.cellWidth;
-  const y = g.gridTop + (player.y + 0.5) * g.cellHeight;
-  const maxRadius = Math.hypot(g.width, g.height) + 40;
-  const now = performance.now();
+  const element = document.createElement("div");
 
-  ["green", "white", "green"].forEach((color, index) => {
-    const element = document.createElement("div");
-    element.className = "electromagnetic-ring" + (color === "white" ? " white" : "");
-    element.style.left = x + "px";
-    element.style.top = y + "px";
-    element.style.width = "0px";
-    element.style.height = "0px";
-    stage.appendChild(element);
-    electromagneticWaves.push({
-      element,
-      x,
-      y,
-      color,
-      start: now + index * 170,
-      duration: 650,
-      maxRadius,
-      previousRadius: 0,
-      hit: new Set()
-    });
+  element.className = "electromagnetic-ring white";
+  element.style.left =
+    (g.gridLeft + (player.x + 0.5) * g.cellWidth) + "px";
+  element.style.top =
+    (g.gridTop + (player.y + 0.5) * g.cellHeight) + "px";
+  element.style.width = "0px";
+  element.style.height = "0px";
+
+  stage.appendChild(element);
+
+  electromagneticWaves.push({
+    x: g.gridLeft + (player.x + 0.5) * g.cellWidth,
+    y: g.gridTop + (player.y + 0.5) * g.cellHeight,
+    start: performance.now(),
+    duration: 500,
+    maxRadius: Math.hypot(g.width, g.height),
+    previousRadius: 0,
+    hit: new Set(),
+    element
   });
-  playSpecialSound(520, 0.18, 0.12);
-}
 
+  playSpecialSound(650, 0.2);
+}
+  
 function updateElectromagneticWaves(now) {
+  const g = getLayout();
   const remainingWaves = [];
   const remainingMissiles = [];
 
@@ -1387,23 +1644,61 @@ function updateElectromagneticWaves(now) {
 
     const progress = Math.min(1, (now - wave.start) / wave.duration);
     const radius = wave.maxRadius * progress;
+
     wave.element.style.width = radius * 2 + "px";
     wave.element.style.height = radius * 2 + "px";
 
     for (const m of missiles) {
       if (wave.hit.has(m)) continue;
+
       const vertical = m.angle === 90 || m.angle === -90;
       const halfW = (vertical ? m.h : m.w) / 2;
       const halfH = (vertical ? m.w : m.h) / 2;
       const hitRadius = Math.hypot(halfW, halfH) + 5;
       const distance = Math.hypot(m.x - wave.x, m.y - wave.y);
-      if (distance <= radius + hitRadius && distance >= wave.previousRadius - hitRadius) {
+
+      if (
+        distance <= radius + hitRadius &&
+        distance >= wave.previousRadius - hitRadius
+      ) {
         wave.hit.add(m);
         m.electromagneticHit = true;
       }
     }
 
+    for (const special of specialMissiles) {
+      if (wave.hit.has(special)) continue;
+
+      const bodyCenters = special.axis === "horizontal"
+        ? [
+            { x: special.x, y: g.gridTop - 8 },
+            { x: special.x, y: g.gridTop + g.gridHeight + 8 }
+          ]
+        : [
+            { x: g.gridLeft - 8, y: special.y },
+            { x: g.gridLeft + g.gridWidth + 8, y: special.y }
+          ];
+
+      const hit = bodyCenters.some(body => {
+        const distance = Math.hypot(
+          body.x - wave.x,
+          body.y - wave.y
+        );
+
+        return (
+          distance <= radius + 12 &&
+          distance >= wave.previousRadius - 12
+        );
+      });
+
+      if (hit) {
+        wave.hit.add(special);
+        special.electromagneticHit = true;
+      }
+    }
+
     wave.previousRadius = radius;
+
     if (progress >= 1) {
       wave.element.remove();
     } else {
@@ -1421,7 +1716,36 @@ function updateElectromagneticWaves(now) {
       remainingMissiles.push(m);
     }
   }
+
   missiles = remainingMissiles;
+
+  const remainingSpecialMissiles = [];
+
+  for (const special of specialMissiles) {
+    if (special.electromagneticHit) {
+      const g = getLayout();
+
+      const x = special.x;
+      const y = special.axis === "horizontal"
+        ? (
+            special.direction === 1
+              ? g.gridTop
+              : g.gridTop + g.gridHeight
+          )
+        : (
+            special.direction === 1
+              ? g.gridLeft
+              : g.gridLeft + g.gridWidth
+          );
+
+      createExplosion(x, y);
+      removeSpecialMissile(special);
+    } else {
+      remainingSpecialMissiles.push(special);
+    }
+  }
+
+  specialMissiles = remainingSpecialMissiles;
 }
 
 function movePlayer(dx, dy) {
@@ -1465,34 +1789,80 @@ function gameLoop(now) {
     addGauge(5 * dt);
   }
 
-  const approachingThreat = electromagneticGauge >= 100 && getApproachingThreat();
+  
+  const approachingThreat =
+    electromagneticGauge >= 100 && getApproachingThreat();
+
   if (!approachingThreat) {
     slowMotionBlocked = false;
     slowMotionActive = false;
   } else if (!slowMotionBlocked) {
     slowMotionActive = true;
   }
-  if (slowMotionActive) speedFactor *= 0.25;
 
-  if (now - lastSpecialSpawnTime >= 5000) {
+  if (slowMotionActive && approachingThreat) {
+    speedFactor *= 0.1;
+    document.body.classList.add("slow-motion");
+    startSlowMotionSound();
+  } else {
+    slowMotionActive = false;
+    document.body.classList.remove("slow-motion");
+    stopSlowMotionSound();
+  }
+
+  if (
+    selectedMode === "all" &&
+    now - lastSpecialSpawnTime >= 5000
+  ) {
     spawnSpecialMissile();
     lastSpecialSpawnTime = now;
   }
 
-  if (now - lastSpawnTime >= spawnInterval) {
+  if (
+    selectedMode === "special" &&
+    now - lastSpecialSpawnTime >= spawnInterval
+  ) {
+    spawnSpecialMissile();
+    lastSpecialSpawnTime = now;
+  }
+
+  if (
+    selectedMode !== "special" &&
+    now - lastSpawnTime >= spawnInterval
+  ) {
     spawnMissile();
 
-    if (Math.random() < 1 / 30) {
+    if (
+      selectedMode === "all" &&
+      Math.random() < 1 / 30
+    ) {
       spawnSpecialMissile();
     }
 
     lastSpawnTime = now;
   }
-
   const g = getLayout();
   const remaining = [];
 
   for (const m of missiles) {
+    const g = getLayout();
+
+    const insideGrid =
+      m.x >= g.gridLeft &&
+      m.x <= g.gridLeft + g.gridWidth &&
+      m.y >= g.gridTop &&
+      m.y <= g.gridTop + g.gridHeight;
+
+    if (!m.insideGrid && insideGrid) {
+      m.insideGrid = true;
+
+      const directionX = Math.sign(m.vx);
+      const directionY = Math.sign(m.vy);
+
+      m.vx = directionX * m.baseSpeed;
+      m.vy = directionY * m.baseSpeed;
+    }
+
     m.x += m.vx * speedFactor * dt;
     m.y += m.vy * speedFactor * dt;
 
@@ -1514,11 +1884,13 @@ function gameLoop(now) {
 
   missiles = remaining;
 
-checkFlameCollisions();
+  const timeScale = slowMotionActive ? 0.1 : 1;
 
-updateSpecialMissiles(now, dt);
-updateElectromagneticWaves(now);
+  checkFlameCollisions(dt, timeScale);
 
+  updateSpecialMissiles(now, dt, timeScale);
+  updateElectromagneticWaves(now);
+  
   const hitMissile = getCollidingMissile();
 
   if (hitMissile) {
@@ -1549,6 +1921,13 @@ function startGame() {
   missiles = [];
 specialMissiles = [];
 
+  for (const wave of electromagneticWaves) {
+    wave.element.remove();
+  }
+  electromagneticWaves = [];
+  electromagneticGauge = 0;
+  updateGaugeDisplay();
+
 for (const flame of flameTrails) {
   flame.element.remove();
 }
@@ -1560,7 +1939,11 @@ player = { x: 2, y: 2 };
 lastFlamePoint = { x: player.x, y: player.y };
   playerElement.style.visibility = "visible";
   score = 0;
+  best = readBest();
+  bestElement.textContent = best;
   running = true;
+  document.documentElement.classList.add("game-running");
+  modeMenu.classList.add("disabled");
 
   startTime = performance.now();
   previousTime = startTime;
@@ -1581,6 +1964,11 @@ function endGame() {
   if (!running) return;
 
   running = false;
+  document.documentElement.classList.remove("game-running");
+  modeMenu.classList.remove("disabled");
+  document.body.classList.remove("slow-motion");
+　stopSlowMotionSound();
+  
   for (const flame of flameTrails) {
   　flame.element.remove();
 　}
@@ -1613,12 +2001,26 @@ const directions = {
 };
 
 function handleDirection(direction) {
+  if (slowMotionActive) {
+    for (const m of missiles) {
+      if (m.slowMotionDetected) {
+        m.slowMotionIgnored = true;
+      }
+    }
+
+    for (const special of specialMissiles) {
+      if (special.slowMotionDetected) {
+        special.slowMotionIgnored = true;
+      }
+    }
+  }
+
   slowMotionActive = false;
   slowMotionBlocked = true;
+
   const [dx, dy] = directions[direction];
   movePlayer(dx, dy);
 }
-
 document.querySelectorAll("[data-dir]").forEach(button => {
   button.addEventListener("click", () => {
     handleDirection(button.dataset.dir);
@@ -1664,7 +2066,9 @@ document.addEventListener("touchstart", event => {
 }, { passive: false });
 
 document.addEventListener("touchmove", event => {
-  event.preventDefault();
+  if (running) {
+    event.preventDefault();
+  }
 }, { passive: false });
 
 document.addEventListener("touchend", event => {
