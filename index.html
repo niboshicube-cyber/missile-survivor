@@ -801,24 +801,26 @@ function spawnMissile() {
     angle: 0,
     w: 30,
     h: 18,
-    speed: 190,
+    speed: 77,
+    baseSpeed: 190,
+    insideGrid: false,
     element: document.createElement("div")
   };
 
   if (type === "fast") {
     m.w = 27;
     m.h = 9;
-    m.speed = 330;
+    m.baseSpeed = 330;
     m.element.style.background = "#22d3c5";
   } else if (type === "normal") {
     m.w = 30;
     m.h = 18;
-    m.speed = 190;
+    m.baseSpeed = 190;
     m.element.style.background = "#ed1472";
   } else if (type === "big") {
     m.w = 120;
     m.h = 72;
-    m.speed = 77;
+    m.baseSpeed = 77;
     m.element.style.background = "#05070c";
     m.element.style.border = "1px solid #718096";
   }
@@ -1735,6 +1737,24 @@ function gameLoop(now) {
   const remaining = [];
 
   for (const m of missiles) {
+    const g = getLayout();
+
+    const insideGrid =
+      m.x >= g.gridLeft &&
+      m.x <= g.gridLeft + g.gridWidth &&
+      m.y >= g.gridTop &&
+      m.y <= g.gridTop + g.gridHeight;
+
+    if (!m.insideGrid && insideGrid) {
+      m.insideGrid = true;
+
+      const directionX = Math.sign(m.vx);
+      const directionY = Math.sign(m.vy);
+
+      m.vx = directionX * m.baseSpeed;
+      m.vy = directionY * m.baseSpeed;
+    }
+
     m.x += m.vx * speedFactor * dt;
     m.y += m.vy * speedFactor * dt;
 
