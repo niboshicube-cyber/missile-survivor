@@ -541,6 +541,35 @@ body.slow-motion #grid {
 body.slow-motion .cell {
   border-color: #a1a8b5;
 }
+
+.mode-menu {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0 0 12px;
+}
+
+.mode-button {
+  padding: 10px 5px;
+  border: 1px solid #536781;
+  border-radius: 8px;
+  background: #202b3d;
+  color: #e4edfa;
+  font-size: 12px;
+  font-weight: 800;
+  touch-action: manipulation;
+}
+
+.mode-button.selected {
+  border-color: #42ff8b;
+  background: #164b32;
+  color: #d9ffe6;
+}
+
+.mode-menu.disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
 </style>
 </head>
 
@@ -548,6 +577,13 @@ body.slow-motion .cell {
 <main class="game">
   <h1>MISSILE SURVIVOR</h1>
   <div class="subtitle">DODGE THE MISSILES. SURVIVE.</div>
+  <div class="mode-menu" id="modeMenu">
+  <button class="mode-button selected" data-mode="all">ALL：全種類</button>
+  <button class="mode-button" data-mode="normal">NORMAL：通常</button>
+  <button class="mode-button" data-mode="fast">FAST：高速</button>
+  <button class="mode-button" data-mode="big">BIG：大型</button>
+  <button class="mode-button" data-mode="special">BEAM：特殊</button>
+</div>
 
   <div class="stats">
     <div class="stat">
@@ -610,6 +646,24 @@ for (let i = 0; i < SIZE * SIZE; i++) {
   grid.appendChild(cell);
 }
 
+let selectedMode = "all";
+
+const modeMenu = document.getElementById("modeMenu");
+
+modeMenu.querySelectorAll("[data-mode]").forEach(button => {
+  button.addEventListener("click", () => {
+    if (running) return;
+
+    selectedMode = button.dataset.mode;
+
+    modeMenu.querySelectorAll("[data-mode]").forEach(item => {
+      item.classList.toggle(
+        "selected",
+        item.dataset.mode === selectedMode
+      );
+    });
+  });
+});
 let player = { x: 2, y: 2 };
 let missiles = [];
 let running = false;
@@ -787,10 +841,14 @@ function spawnMissile() {
   const lane = Math.floor(Math.random() * SIZE);
 
   const roll = Math.random();
-  const type =
-    roll < 3 / 4 ? "normal" :
-    roll < 11 / 12 ? "fast" :
-    "big";
+
+  const type = selectedMode === "all"
+    ? (
+        roll < 3 / 4 ? "normal" :
+        roll < 11 / 12 ? "fast" :
+        "big"
+      )
+    : selectedMode;
 
   const m = {
     type,
@@ -1718,21 +1776,29 @@ function gameLoop(now) {
     stopSlowMotionSound();
   }
 
-  if (now - lastSpecialSpawnTime >= 5000) {
+  if (
+    (selectedMode === "all" || selectedMode === "special") &&
+    now - lastSpecialSpawnTime >= 5000
+  ) {
     spawnSpecialMissile();
     lastSpecialSpawnTime = now;
   }
 
-  if (now - lastSpawnTime >= spawnInterval) {
+  if (
+    selectedMode !== "special" &&
+    now - lastSpawnTime >= spawnInterval
+  ) {
     spawnMissile();
 
-    if (Math.random() < 1 / 30) {
+    if (
+      selectedMode === "all" &&
+      Math.random() < 1 / 30
+    ) {
       spawnSpecialMissile();
     }
 
     lastSpawnTime = now;
   }
-
   const g = getLayout();
   const remaining = [];
 
@@ -1825,6 +1891,7 @@ lastFlamePoint = { x: player.x, y: player.y };
   playerElement.style.visibility = "visible";
   score = 0;
   running = true;
+  modeMenu.classList.add("disabled");
 
   startTime = performance.now();
   previousTime = startTime;
@@ -1845,6 +1912,7 @@ function endGame() {
   if (!running) return;
 
   running = false;
+  modeMenu.classList.remove("disabled");
   document.body.classList.remove("slow-motion");
 　stopSlowMotionSound();
   
