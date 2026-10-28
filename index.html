@@ -22,42 +22,42 @@
 
 html {
   width: 100%;
-  height: 100%;
+  min-height: 100%;
   margin: 0;
-  overflow: hidden;
-  overscroll-behavior: none;
-  touch-action: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+  touch-action: pan-y;
 }
 
 body {
-  position: fixed;
-  inset: 0;
+  position: relative;
   width: 100%;
-  height: 100%;
-  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
   padding: 14px;
   display: flex;
   justify-content: center;
-  align-items: center;
-  overflow: hidden;
-  overscroll-behavior: none;
-  touch-action: none;
+  align-items: flex-start;
+  overflow: visible;
+  touch-action: pan-y;
   background: var(--background);
   color: #f4f7ff;
   font-family: system-ui, -apple-system, sans-serif;
   -webkit-user-select: none;
   user-select: none;
 }
-
+  
 .game {
   width: 100%;
   max-width: 430px;
-  max-height: 100%;
-  overflow: hidden;
+  max-height: none;
+  overflow: visible;
   text-align: center;
-  touch-action: none;
-  overscroll-behavior: none;
+  touch-action: pan-y;
+  overscroll-behavior: auto;
+  margin: auto;
 }
 
 h1 {
@@ -569,6 +569,28 @@ body.slow-motion .cell {
 .mode-menu.disabled {
   opacity: 0.55;
   pointer-events: none;
+}
+
+html.game-running,
+html.game-running body {
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+html.game-running body {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  min-height: 0;
+}
+
+html.game-running .game {
+  max-height: 100%;
+  overflow: hidden;
+  touch-action: none;
 }
 </style>
 </head>
@@ -1891,6 +1913,7 @@ lastFlamePoint = { x: player.x, y: player.y };
   playerElement.style.visibility = "visible";
   score = 0;
   running = true;
+  document.documentElement.classList.add("game-running");
   modeMenu.classList.add("disabled");
 
   startTime = performance.now();
@@ -1912,6 +1935,7 @@ function endGame() {
   if (!running) return;
 
   running = false;
+  document.documentElement.classList.remove("game-running");
   modeMenu.classList.remove("disabled");
   document.body.classList.remove("slow-motion");
 　stopSlowMotionSound();
