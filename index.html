@@ -677,6 +677,8 @@ modeMenu.querySelectorAll("[data-mode]").forEach(button => {
     if (running) return;
 
     selectedMode = button.dataset.mode;
+    best = readBest();
+    bestElement.textContent = best;
 
     modeMenu.querySelectorAll("[data-mode]").forEach(item => {
       item.classList.toggle(
@@ -740,7 +742,9 @@ bestElement.textContent = best;
 
 function readBest() {
   try {
-    return Number(localStorage.getItem("missileSurvivorBest")) || 0;
+    return Number(
+      localStorage.getItem("missileSurvivorBest_" + selectedMode)
+    ) || 0;
   } catch {
     return 0;
   }
@@ -748,10 +752,13 @@ function readBest() {
 
 function saveBest(value) {
   try {
-    localStorage.setItem("missileSurvivorBest", String(value));
+    localStorage.setItem(
+      "missileSurvivorBest_" + selectedMode,
+      String(value)
+    );
   } catch {}
 }
-
+  
 function getLayout() {
   const width = stage.clientWidth;
   const height = stage.clientHeight;
@@ -1912,6 +1919,8 @@ player = { x: 2, y: 2 };
 lastFlamePoint = { x: player.x, y: player.y };
   playerElement.style.visibility = "visible";
   score = 0;
+  best = readBest();
+  bestElement.textContent = best;
   running = true;
   document.documentElement.classList.add("game-running");
   modeMenu.classList.add("disabled");
