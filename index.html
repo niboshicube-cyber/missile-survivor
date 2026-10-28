@@ -2046,7 +2046,9 @@ document.addEventListener("touchstart", event => {
 }, { passive: false });
 
 document.addEventListener("touchmove", event => {
-  event.preventDefault();
+  if (running) {
+    event.preventDefault();
+  }
 }, { passive: false });
 
 document.addEventListener("touchend", event => {
