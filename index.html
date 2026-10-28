@@ -763,6 +763,159 @@ html.game-running .game {
 "use strict";
 
 const SIZE = 6;
+const SUPABASE_URL = "https://miqwgpvfbntmvrgnpqqt.supabase.co";
+const SUPABASE_KEY = "sb_publishable_pf5RTfpcQzKxlsJTNtnXnQ_-ItCh5GM";
+
+const playerNameInput = document.getElementById("playerName");
+const savePlayerNameButton = document.getElementById("savePlayerName");
+const rankingStatus = document.getElementById("rankingStatus");
+const rankingList = document.getElementById("rankingList");
+const refreshRankingButton = document.getElementById("refreshRanking");
+
+const PLAYER_NAME_KEY = "missileSurvivorPlayerName";
+
+function getPlayerName() {
+  try {
+    return localStorage.getItem(PLAYER_NAME_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function savePlayerName() {
+  const name = playerNameInput.value.trim();
+
+  if (name.length < 1 || name.length > 16) {
+    rankingStatus.textContent = "名前は1〜16文字で入力してください。";
+    return;
+  }
+
+  try {
+    localStorage.setItem(PLAYER_NAME_KEY, name);
+  } catch {
+    rankingStatus.textContent = "名前を保存できませんでした。";
+    return;
+  }
+
+  playerNameInput.value = name;
+  rankingStatus.textContent = "プレイヤー名を登録しました。";
+}
+
+playerNameInput.value = getPlayerName();
+
+savePlayerNameButton.addEventListener("click", savePlayerName);
+
+playerNameInput.addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    savePlayerName();
+  }
+});
+
+async function submitOnlineScore() {
+  const playerName = getPlayerName().trim();
+
+  if (playerName.length < 1 || playerName.length > 16) {
+    rankingStatus.textContent =
+      "スコア送信には、先にプレイヤー名を登録してください。";
+    return;
+  }
+
+  rankingStatus.textContent = "スコアを送信中...";
+
+  try {
+    const response = await fetch(
+      SUPABASE_URL + "/rest/v1/rpc/submit_missile_survivor_score",
+      {
+        method: "POST",
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": "Bearer " + SUPABASE_KEY,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          p_player_name: playerName,
+          p_mode: selectedMode,
+          p_score: score
+        })
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Score submission failed: " + response.status);
+    }
+
+    rankingStatus.textContent = "スコアを送信しました！";
+    await loadOnlineRanking();
+  } catch (error) {
+    rankingStatus.textContent =
+      "送信に失敗しました。通信設定を確認して再試行してください。";
+  }
+}
+
+async function loadOnlineRanking() {
+  rankingStatus.textContent = "ランキングを読み込み中...";
+  rankingList.replaceChildren();
+
+  try {
+    const url = new URL(
+      SUPABASE_URL + "/rest/v1/missile_survivor_scores"
+    );
+
+    url.searchParams.set("select", "player_name,score");
+    url.searchParams.set("mode", "eq." + selectedMode);
+    url.searchParams.set("order", "score.desc,created_at.asc");
+    url.searchParams.set("limit", "10");
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": "Bearer " + SUPABASE_KEY
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error("Ranking request failed: " + response.status);
+    }
+
+    const results = await response.json();
+
+    if (results.length === 0) {
+      rankingStatus.textContent = "まだランキングの記録がありません。";
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    results.forEach((entry, index) => {
+      const item = document.createElement("li");
+
+      const rank = document.createElement("span");
+      rank.className = "ranking-rank";
+      rank.textContent = (index + 1) + ".";
+
+      const name = document.createElement("span");
+      name.className = "ranking-name";
+      name.textContent = entry.player_name;
+
+      const points = document.createElement("span");
+      points.className = "ranking-score";
+      points.textContent = Number(entry.score).toLocaleString();
+
+      item.append(rank, name, points);
+      fragment.appendChild(item);
+    });
+
+    rankingList.appendChild(fragment);
+    rankingStatus.textContent =
+      selectedMode.toUpperCase() + " モード TOP 10";
+  } catch (error) {
+    rankingStatus.textContent =
+      "ランキングを取得できませんでした。SQL設定や接続を確認してください。";
+  }
+}
+
+refreshRankingButton.addEventListener("click", loadOnlineRanking);
 
 const stage = document.getElementById("stage");
 const grid = document.getElementById("grid");
@@ -800,6 +953,7 @@ modeMenu.querySelectorAll("[data-mode]").forEach(button => {
         item.dataset.mode === selectedMode
       );
     });
+    loadOnlineRanking();
   });
 });
 let player = { x: 2, y: 2 };
@@ -2100,6 +2254,7 @@ function endGame() {
 
   startButton.textContent = "TRY AGAIN";
   updateGaugeDisplay();
+  submitOnlineScore();
 }
 
 const directions = {
@@ -2217,6 +2372,7 @@ window.addEventListener("resize", render);
 
 updateGaugeDisplay();
 render();
+loadOnlineRanking();
 </script>
 </body>
 </html>
