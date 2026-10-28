@@ -598,6 +598,92 @@ html.game-running .game {
   overflow: hidden;
   touch-action: none;
 }
+
+#onlineRanking {
+  margin: 18px 0 30px;
+  padding: 14px;
+  border: 1px solid #354968;
+  border-radius: 10px;
+  background: #182235;
+  text-align: left;
+}
+
+#onlineRanking h2 {
+  margin: 0 0 12px;
+  font-size: 17px;
+  text-align: center;
+}
+
+#playerNameArea {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+
+#playerName {
+  min-width: 0;
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #536781;
+  border-radius: 7px;
+  background: #101522;
+  color: #fff;
+  font-size: 14px;
+}
+
+#savePlayerName,
+#refreshRanking {
+  padding: 9px 11px;
+  border: 1px solid #536781;
+  border-radius: 7px;
+  background: #29364b;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+#rankingStatus {
+  min-height: 18px;
+  margin-bottom: 8px;
+  color: #95a7c4;
+  font-size: 11px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+#rankingList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#rankingList li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 3px;
+  border-bottom: 1px solid #354968;
+  font-size: 13px;
+}
+
+#rankingList li:last-child {
+  border-bottom: 0;
+}
+
+.ranking-rank {
+  color: #ffd928;
+  font-weight: 800;
+}
+
+.ranking-name {
+  overflow-wrap: anywhere;
+}
+
+.ranking-score {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
 </style>
 </head>
 
@@ -649,6 +735,28 @@ html.game-running .game {
     <button class="mode-button" data-mode="big">BIG：大型</button>
     <button class="mode-button" data-mode="special">BEAM：特殊</button>
   </div>
+    <section id="onlineRanking">
+    <h2>ONLINE RANKING</h2>
+
+    <div id="playerNameArea">
+      <input
+        id="playerName"
+        type="text"
+        maxlength="16"
+        placeholder="プレイヤー名（1〜16文字）"
+        autocomplete="nickname"
+      >
+      <button id="savePlayerName" type="button">登録</button>
+    </div>
+
+    <div id="rankingStatus">ランキングを読み込み中...</div>
+
+    <ol id="rankingList"></ol>
+
+    <button id="refreshRanking" type="button" style="width:100%">
+      ランキング更新
+    </button>
+  </section>
 </main>
 
 <script>
