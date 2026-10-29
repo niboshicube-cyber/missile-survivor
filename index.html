@@ -286,39 +286,37 @@ body.slow-motion .flame-trail {
 }
 
 .action-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
 }
 
 #attackButton,
 #startButton {
-  width: 100%;
+  flex: 1;
   min-width: 0;
-  min-height: 40px;
-  margin: 0;
-  padding: 8px 4px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 800;
-  touch-action: manipulation;
+  border: none;
+  border-radius: 999px;
+  padding: 13px 12px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
 }
 
 #attackButton {
-  border: 1px solid #37e979;
-  background: #164b32;
-  color: #d9ffe6;
+  background: #f5c542;
+  color: #172033;
 }
 
 #attackButton:disabled {
-  border-color: #425168;
-  background: #202b3d;
-  color: #77869b;
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 #startButton {
-  border: 0;
-  background: #2879f5;
+  background: #4d9fff;
   color: white;
 }
 
@@ -2227,6 +2225,7 @@ lastFlamePoint = { x: player.x, y: player.y };
   timeElement.textContent = "0.0";
   messageElement.textContent = "四方からのミサイルを避けろ！";
   startButton.textContent = "RESTART";
+  startButton.style.display = "none";
   updateGaugeDisplay();
 
   render();
@@ -2263,6 +2262,7 @@ function endGame() {
   }
 
   startButton.textContent = "TRY AGAIN";
+  startButton.style.display = "block";
   updateGaugeDisplay();
   submitOnlineScore();
 }
