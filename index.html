@@ -254,9 +254,7 @@ body.slow-motion .flame-trail {
 }
 
 #electromagneticGauge {
-  width: 100%;
-  margin: 0 0 8px;
-  text-align: left;
+  display: none;
 }
 
 .gauge-label {
@@ -287,37 +285,55 @@ body.slow-motion .flame-trail {
 
 .action-buttons {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-evenly;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   width: 100%;
+  padding: 4px 0;
 }
 
 #attackButton,
 #startButton {
-  flex: 1;
-  min-width: 0;
+  position: relative;
+  display: flex;
+  flex: 0 0 82px;
+  width: 82px;
+  height: 82px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
   border: none;
-  border-radius: 999px;
-  padding: 13px 12px;
-  font-size: 14px;
-  font-weight: bold;
+  border-radius: 50%;
+  background: transparent;
   cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
-#attackButton {
-  background: #f5c542;
-  color: #172033;
+#attackButton svg,
+#startButton svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 #attackButton:disabled {
-  opacity: 0.45;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
+#attackButton:not(:disabled) {
+  opacity: 1;
+  filter: drop-shadow(0 0 7px rgba(32, 189, 104, 0.45));
+}
+
 #startButton {
-  background: #4d9fff;
-  color: white;
+  filter: drop-shadow(0 0 6px rgba(81, 201, 245, 0.25));
+}
+
+#startButton:active,
+#attackButton:not(:disabled):active {
+  transform: scale(0.94);
 }
 
 #message {
@@ -721,10 +737,28 @@ html.game-running .game {
     </div>
 
     <div class="action-buttons">
-      <button id="attackButton" disabled>
-        電磁波攻撃
+      <button id="attackButton" disabled aria-label="電磁波攻撃">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46"
+            fill="none" stroke="#536781" stroke-width="5"/>
+          <circle id="gaugeCircle" cx="50" cy="50" r="46"
+            fill="none" stroke="#ffe45c" stroke-width="5"
+            stroke-linecap="round"
+            stroke-dasharray="289.03"
+            stroke-dashoffset="289.03"
+            transform="rotate(-90 50 50)"/>
+          <circle cx="50" cy="50" r="37" fill="#20bd68"/>
+          <path d="M55 25 L36 54 L49 54 L44 76 L66 44 L53 44 Z"
+            fill="#ffffff"/>
+        </svg>
       </button>
-      <button id="startButton">GAME START</button>
+
+      <button id="startButton" aria-label="ゲーム開始">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="42" fill="#51c9f5"/>
+          <path d="M42 29 L42 71 L73 50 Z" fill="#ffffff"/>
+        </svg>
+      </button>
     </div>
   </div>
 
@@ -1751,14 +1785,22 @@ function checkFlameCollisions(dt, timeScale) {
 
   missiles = remaining;
 }
+
 function updateGaugeDisplay() {
-  const value = Math.max(0, Math.min(100, electromagneticGauge));
-  gaugeFill.style.width = value + "%";
+  const value = Math.max(
+    0,
+    Math.min(100, electromagneticGauge)
+  );
+
+  const gaugeCircle = document.getElementById("gaugeCircle");
+
+  gaugeCircle.style.strokeDashoffset =
+    289.03 * (1 - value / 100);
+
   gaugePercent.textContent = Math.floor(value) + "%";
   attackButton.disabled = value < 100 || !running;
-  attackButton.textContent = "電磁波攻撃";
 }
-
+  
 function addGauge(amount) {
   electromagneticGauge = Math.min(100, electromagneticGauge + amount);
   updateGaugeDisplay();
@@ -2224,7 +2266,6 @@ lastFlamePoint = { x: player.x, y: player.y };
   scoreElement.textContent = "0";
   timeElement.textContent = "0.0";
   messageElement.textContent = "四方からのミサイルを避けろ！";
-  startButton.textContent = "RESTART";
   startButton.style.display = "none";
   updateGaugeDisplay();
 
@@ -2261,7 +2302,6 @@ function endGame() {
     messageElement.textContent = "GAME OVER！ スコア：" + score;
   }
 
-  startButton.textContent = "TRY AGAIN";
   startButton.style.display = "block";
   updateGaugeDisplay();
   submitOnlineScore();
