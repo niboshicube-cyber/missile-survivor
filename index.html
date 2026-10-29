@@ -414,7 +414,18 @@ body.slow-motion .flame-trail {
   }
 
   #stage {
-    width: min(76vw, 360px, 43dvh);
+    position: relative;
+    width: min(100%, 360px);
+    aspect-ratio: 1;
+    height: auto;
+    flex-shrink: 0;
+    margin: 0 auto;
+    overflow: hidden;
+    background: #26364f;
+    border: 1px solid #354968;
+    border-radius: 8px;
+    touch-action: none;
+    overscroll-behavior: none;
   }
 
   #message {
