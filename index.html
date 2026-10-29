@@ -731,6 +731,15 @@ html.game-running .game {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
+
+#starfield {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
 </style>
 </head>
 
@@ -753,7 +762,8 @@ html.game-running .game {
     </div>
   </div>
 
-  <div id="stage">
+  <div id="class">
+    <canvas id="starfield" aria-hidden="true"></canvas>
     <div id="grid"></div>
     <div id="player"></div>
   </div>
@@ -836,6 +846,64 @@ html.game-running .game {
   </section>
 </main>
 
+const starfield = document.getElementById("starfield");
+const starContext = starfield.getContext("2d");
+const stars = [];
+let starLastFrame = 0;
+
+function resizeStarfield() {
+  const rect = starfield.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+
+  starfield.width = Math.round(rect.width * dpr);
+  starfield.height = Math.round(rect.height * dpr);
+  starContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  stars.length = 0;
+
+  const count = Math.floor(rect.width * rect.height / 1800);
+
+  for (let i = 0; i < count; i++) {
+    stars.push({
+      x: Math.random() * rect.width,
+      y: Math.random() * rect.height,
+      size: 0.4 + Math.random() * 1.5,
+      speed: 15 + Math.random() * 100,
+      alpha: 0.3 + Math.random() * 0.7
+    });
+  }
+}
+
+function animateStarfield(now) {
+  const rect = starfield.getBoundingClientRect();
+  const dt = starLastFrame
+    ? Math.min((now - starLastFrame) / 1000, 0.05)
+    : 0;
+
+  starLastFrame = now;
+  starContext.clearRect(0, 0, rect.width, rect.height);
+
+  for (const star of stars) {
+    star.x -= star.speed * dt * 0.72;
+    star.y -= star.speed * dt * 0.42;
+
+    if (star.x < -3) star.x = rect.width + 3;
+    if (star.y < -3) star.y = rect.height + 3;
+
+    starContext.fillStyle =
+      `rgba(225, 239, 255, ${star.alpha})`;
+
+    starContext.beginPath();
+    starContext.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+    starContext.fill();
+  }
+
+  requestAnimationFrame(animateStarfield);
+}
+
+resizeStarfield();
+window.addEventListener("resize", resizeStarfield);
+requestAnimationFrame(animateStarfield);
 <script>
 "use strict";
 
