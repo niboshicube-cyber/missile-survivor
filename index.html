@@ -603,27 +603,39 @@ body.slow-motion .cell {
 }
 
 .mode-menu {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
-  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 12px 0;
+  color: #e4edfa;
+  font-size: 14px;
+  font-weight: 800;
 }
 
-.mode-button {
-  padding: 10px 5px;
+.mode-label {
+  white-space: nowrap;
+}
+
+.mode-arrow {
+  width: 34px;
+  height: 34px;
+  padding: 0;
   border: 1px solid #536781;
-  border-radius: 8px;
+  border-radius: 7px;
   background: #202b3d;
   color: #e4edfa;
-  font-size: 12px;
+  font-size: 20px;
   font-weight: 800;
   touch-action: manipulation;
 }
 
-.mode-button.selected {
-  border-color: #42ff8b;
-  background: #164b32;
-  color: #d9ffe6;
+.mode-current {
+  min-width: 90px;
+  text-align: center;
+  color: #d9eaff;
+  font-size: 14px;
+  font-weight: 900;
 }
 
 .mode-menu.disabled {
@@ -823,11 +835,10 @@ html.game-running .game {
   </div>
 
   <div class="mode-menu" id="modeMenu">
-    <button class="mode-button selected" data-mode="all">ALL：全種類</button>
-    <button class="mode-button" data-mode="normal">NORMAL：通常</button>
-    <button class="mode-button" data-mode="fast">FAST：高速</button>
-    <button class="mode-button" data-mode="big">BIG：大型</button>
-    <button class="mode-button" data-mode="special">BEAM：特殊</button>
+    <span class="mode-label">モード:</span>
+    <button class="mode-arrow" id="modePrev" aria-label="前のモード">‹</button>
+    <span class="mode-current" id="modeCurrent">&lt; ALL &gt;</span>
+    <button class="mode-arrow" id="modeNext" aria-label="次のモード">›</button>
   </div>
     <section id="onlineRanking">
     <h2>ONLINE RANKING</h2>
@@ -1032,24 +1043,44 @@ for (let i = 0; i < SIZE * SIZE; i++) {
 let selectedMode = "all";
 
 const modeMenu = document.getElementById("modeMenu");
+const modeCurrent = document.getElementById("modeCurrent");
 
-modeMenu.querySelectorAll("[data-mode]").forEach(button => {
-  button.addEventListener("click", () => {
-    if (running) return;
+const modeOptions = [
+  { value: "all", label: "ALL" },
+  { value: "normal", label: "NORMAL" },
+  { value: "fast", label: "FAST" },
+  { value: "big", label: "BIG" },
+  { value: "special", label: "BEAM" }
+];
 
-    selectedMode = button.dataset.mode;
-    best = readBest();
-    bestElement.textContent = best;
+function changeMode(direction) {
+  if (running) return;
 
-    modeMenu.querySelectorAll("[data-mode]").forEach(item => {
-      item.classList.toggle(
-        "selected",
-        item.dataset.mode === selectedMode
-      );
-    });
-    loadOnlineRanking();
-  });
-});
+  let index = modeOptions.findIndex(
+    mode => mode.value === selectedMode
+  );
+
+  index =
+    (index + direction + modeOptions.length) %
+    modeOptions.length;
+
+  selectedMode = modeOptions[index].value;
+  modeCurrent.textContent =
+    `< ${modeOptions[index].label} >`;
+
+  best = readBest();
+  bestElement.textContent = best;
+}
+
+document.getElementById("modePrev").addEventListener(
+  "click",
+  () => changeMode(-1)
+);
+
+document.getElementById("modeNext").addEventListener(
+  "click",
+  () => changeMode(1)
+);
 let player = { x: 2, y: 2 };
 let missiles = [];
 let running = false;
