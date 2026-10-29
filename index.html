@@ -1082,25 +1082,6 @@ document.getElementById("modeNext").addEventListener(
   () => changeMode(1)
 );
 
-const modeMenu = document.getElementById("modeMenu");
-
-modeMenu.querySelectorAll("[data-mode]").forEach(button => {
-  button.addEventListener("click", () => {
-    if (running) return;
-
-    selectedMode = button.dataset.mode;
-    best = readBest();
-    bestElement.textContent = best;
-
-    modeMenu.querySelectorAll("[data-mode]").forEach(item => {
-      item.classList.toggle(
-        "selected",
-        item.dataset.mode === selectedMode
-      );
-    });
-    loadOnlineRanking();
-  });
-});
 let player = { x: 2, y: 2 };
 let missiles = [];
 let running = false;
