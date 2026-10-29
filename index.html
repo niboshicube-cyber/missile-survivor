@@ -1038,6 +1038,7 @@ let missiles = [];
 let running = false;
 let startTime = 0;
 let previousTime = 0;
+let gameElapsed = 0;
 let lastSpawnTime = 0;
 let lastSpecialSpawnTime = 0;
 let score = 0;
@@ -2118,9 +2119,11 @@ function movePlayer(dx, dy) {
 function gameLoop(now) {
   if (!running) return;
 
-  const elapsed = (now - startTime) / 1000;
   const dt = Math.min((now - previousTime) / 1000, 0.05);
   previousTime = now;
+
+  const realElapsed = (now - startTime) / 1000;
+  const elapsed = gameElapsed;
 
   score = Math.floor(elapsed * 10);
   scoreElement.textContent = score;
@@ -2230,6 +2233,7 @@ function gameLoop(now) {
 
   missiles = remaining;
 
+  gameElapsed += dt * (slowMotionActive ? 0.1 : 1);
   const timeScale = slowMotionActive ? 0.1 : 1;
 
   checkFlameCollisions(dt, timeScale);
@@ -2265,7 +2269,7 @@ function startGame() {
   }
 
   missiles = [];
-specialMissiles = [];
+  specialMissiles = [];
 
   for (const wave of electromagneticWaves) {
     wave.element.remove();
@@ -2293,6 +2297,7 @@ lastFlamePoint = { x: player.x, y: player.y };
 
   startTime = performance.now();
   previousTime = startTime;
+  gameElapsed = 0;
   lastSpawnTime = startTime;
   lastSpecialSpawnTime = startTime;
 
