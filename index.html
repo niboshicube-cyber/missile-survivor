@@ -1912,33 +1912,19 @@ function getApproachingThreat() {
   const playerBottom = py + g.cellHeight / 2;
 
   const regularThreat = missiles.some(m => {
-    if (m.slowMotionIgnored || (m.vx === 0 && m.vy === 0)) {
-      return false;
-    }
+    if (m.vx === 0 && m.vy === 0) return false;
 
     const vertical = m.angle === 90 || m.angle === -90;
     const halfW = (vertical ? m.h : m.w) / 2;
     const halfH = (vertical ? m.w : m.h) / 2;
-
     const missileLeft = m.x - halfW;
     const missileRight = m.x + halfW;
     const missileTop = m.y - halfH;
     const missileBottom = m.y + halfH;
 
-    const gapX = Math.max(
-      0,
-      playerLeft - missileRight,
-      missileLeft - playerRight
-    );
-    const gapY = Math.max(
-      0,
-      playerTop - missileBottom,
-      missileTop - playerBottom
-    );
-
-    if (gapX > g.cellWidth || gapY > g.cellHeight) {
-      return false;
-    }
+    const gapX = Math.max(0, playerLeft - missileRight, missileLeft - playerRight);
+    const gapY = Math.max(0, playerTop - missileBottom, missileTop - playerBottom);
+    if (gapX > g.cellWidth || gapY > g.cellHeight) return false;
 
     const targetLeft = playerLeft - halfW;
     const targetRight = playerRight + halfW;
@@ -1972,26 +1958,62 @@ function getApproachingThreat() {
 
     const entryTime = Math.max(entryX, entryY);
     const exitTime = Math.min(exitX, exitY);
-    const threat = exitTime >= Math.max(entryTime, 0);
 
-    if (threat) {
-      m.slowMotionDetected = true;
+    if (exitTime < Math.max(entryTime, 0)) return false;
+
+    for (const flame of flameTrails) {
+      const x1 = g.gridLeft + (flame.x1 + 0.5) * g.cellWidth;
+      const y1 = g.gridTop + (flame.y1 + 0.5) * g.cellHeight;
+      const x2 = g.gridLeft + (flame.x2 + 0.5) * g.cellWidth;
+      const y2 = g.gridTop + (flame.y2 + 0.5) * g.cellHeight;
+
+      const flameLeft = Math.min(x1, x2) - 5 - halfW;
+      const flameRight = Math.max(x1, x2) + 5 + halfW;
+      const flameTop = Math.min(y1, y2) - 5 - halfH;
+      const flameBottom = Math.max(y1, y2) + 5 + halfH;
+
+      let flameEntryX = -Infinity;
+      let flameExitX = Infinity;
+      let flameEntryY = -Infinity;
+      let flameExitY = Infinity;
+
+      if (m.vx > 0) {
+        flameEntryX = (flameLeft - m.x) / m.vx;
+        flameExitX = (flameRight - m.x) / m.vx;
+      } else if (m.vx < 0) {
+        flameEntryX = (flameRight - m.x) / m.vx;
+        flameExitX = (flameLeft - m.x) / m.vx;
+      } else if (m.x < flameLeft || m.x > flameRight) {
+        continue;
+      }
+
+      if (m.vy > 0) {
+        flameEntryY = (flameTop - m.y) / m.vy;
+        flameExitY = (flameBottom - m.y) / m.vy;
+      } else if (m.vy < 0) {
+        flameEntryY = (flameBottom - m.y) / m.vy;
+        flameExitY = (flameTop - m.y) / m.vy;
+      } else if (m.y < flameTop || m.y > flameBottom) {
+        continue;
+      }
+
+      const flameEntryTime = Math.max(flameEntryX, flameEntryY);
+      const flameExitTime = Math.min(flameExitX, flameExitY);
+
+      if (
+        flameExitTime >= Math.max(flameEntryTime, 0) &&
+        flameEntryTime < entryTime
+      ) {
+        return false;
+      }
     }
 
-    return threat;
-  });
-
-  const beamThreat = specialMissiles.some(special => {
-    if (
-      special.phase !== "flash" ||
-      special.slowMotionIgnored
-    ) {
-      return false;
-    }
-
-    special.slowMotionDetected = true;
     return true;
   });
+
+  const beamThreat = specialMissiles.some(
+    special => special.phase === "flash"
+  );
 
   return regularThreat || beamThreat;
 }
