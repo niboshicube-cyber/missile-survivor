@@ -1070,6 +1070,8 @@ function changeMode(direction) {
 
   best = readBest();
   bestElement.textContent = best;
+
+  loadOnlineRanking();
 }
 
 document.getElementById("modePrev").addEventListener(
