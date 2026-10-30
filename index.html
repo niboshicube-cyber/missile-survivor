@@ -1043,28 +1043,6 @@ for (let i = 0; i < SIZE * SIZE; i++) {
 let selectedMode = "all";
 
 const modeMenu = document.getElementById("modeMenu");
-
-modeMenu.querySelectorAll("[data-mode]").forEach(button => {
-  button.addEventListener("click", () => {
-    if (running) return;
-
-    selectedMode = button.dataset.mode;
-
-    best = readBest();
-    bestElement.textContent = best;
-
-    modeMenu.querySelectorAll("[data-mode]").forEach(item => {
-      item.classList.toggle(
-        "selected",
-        item.dataset.mode === selectedMode
-      );
-    });
-
-    loadOnlineRanking();
-  });
-});
-
-const modeMenu = document.getElementById("modeMenu");
 const modeCurrent = document.getElementById("modeCurrent");
 
 const modeOptions = [
