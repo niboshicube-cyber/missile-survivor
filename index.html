@@ -2478,6 +2478,14 @@ document.querySelectorAll("[data-dir]").forEach(button => {
 document.addEventListener("keydown", event => {
   const key = event.key.toLowerCase();
 
+  if (event.code === "Space") {
+    if (running) {
+      event.preventDefault();
+      activateElectromagneticWave();
+    }
+    return;
+  }
+
   const keyMap = {
     arrowup: "up",
     w: "up",
@@ -2496,7 +2504,6 @@ document.addEventListener("keydown", event => {
     handleDirection(direction);
   }
 });
-
 let touchStartX = 0;
 let touchStartY = 0;
 let touchActive = false;
