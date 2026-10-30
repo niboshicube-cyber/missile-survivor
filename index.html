@@ -1158,12 +1158,20 @@ function saveBest(value) {
 }
   
 function getLayout() {
+  const stageRect = stage.getBoundingClientRect();
+  const gridRect = grid.getBoundingClientRect();
+
   const width = stage.clientWidth;
   const height = stage.clientHeight;
-  const gridLeft = width * 0.125;
-  const gridTop = height * 0.125;
-  const gridWidth = width * 0.75;
-  const gridHeight = height * 0.75;
+
+  const gridLeft =
+    gridRect.left - stageRect.left - stage.clientLeft;
+
+  const gridTop =
+    gridRect.top - stageRect.top - stage.clientTop;
+
+  const gridWidth = gridRect.width;
+  const gridHeight = gridRect.height;
 
   return {
     width,
@@ -1176,7 +1184,6 @@ function getLayout() {
     cellHeight: gridHeight / SIZE
   };
 }
-
 function drawPlayer() {
   const g = getLayout();
   const w = g.cellWidth;
