@@ -2030,34 +2030,51 @@ function activateElectromagneticWave() {
   const stageRect = stage.getBoundingClientRect();
   const playerRect = playerElement.getBoundingClientRect();
 
-  const x = playerRect.left + playerRect.width / 2 - stageRect.left;
-  const y = playerRect.top + playerRect.height / 2 - stageRect.top;
+  const x =
+    playerRect.left + playerRect.width / 2 -
+    stageRect.left - stage.clientLeft;
+
+  const y =
+    playerRect.top + playerRect.height / 2 -
+    stageRect.top - stage.clientTop;
 
   const g = getLayout();
-  const maxRadius = Math.hypot(g.width, g.height) + 40;
-  const now = performance.now();
 
-  ["green", "white", "green"].forEach((color, index) => {
+  const colors = ["green", "white", "green"];
+
+  colors.forEach((color, index) => {
     const element = document.createElement("div");
-    element.className = "electromagnetic-ring" + (color === "white" ? " white" : "");
+
+    element.className = "electromagnetic-ring";
+    if (color === "white") {
+      element.classList.add("white");
+    }
+
     element.style.left = x + "px";
     element.style.top = y + "px";
     element.style.width = "0px";
     element.style.height = "0px";
+    element.style.animationDelay = (index * 100) + "ms";
+
     stage.appendChild(element);
+
     electromagneticWaves.push({
-      element,
       x,
       y,
-      color,
-      start: now + index * 170,
-      duration: 650,
-      maxRadius,
+      start: performance.now() + index * 100,
+      duration: 500,
+      maxRadius: Math.hypot(g.width, g.height),
       previousRadius: 0,
-      hit: new Set()
+      hit: new Set(),
+      element
     });
   });
-  playElectromagneticSound();
+
+  if (audioContext && audioContext.state === "suspended") {
+    audioContext.resume();
+  }
+
+  playSpecialSound(650, 0.35, 0.12);
 }
 
   
