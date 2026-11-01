@@ -749,6 +749,37 @@ html.game-running .game {
   pointer-events: none;
   z-index: 0;
 }
+
+
+/* Tutorial overlay */
+#tutorialOverlay{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(4,9,20,.88);backdrop-filter:blur(5px)}
+#tutorialOverlay.open{display:flex}
+#tutorialCard{width:min(100%,480px);height:min(82dvh,610px);overflow:auto;display:flex;flex-direction:column;background:#17243a;border:1px solid #526987;border-radius:16px;box-shadow:0 18px 60px #000b;color:#f4f7ff;padding:16px;box-sizing:border-box}
+#tutorialTop{display:flex;justify-content:space-between;align-items:center;color:#9eb5d2;font-size:12px;letter-spacing:1px;margin-bottom:12px}
+#tutorialTitle{font-size:22px;font-weight:800;text-align:center;margin:5px 0 12px}
+#tutorialText{font-size:14px;line-height:1.65;color:#dce7f7;height:94px;overflow:auto;margin:0 0 8px;flex:none}
+.tutorial-demo{position:relative;width:min(100%,230px);height:230px;aspect-ratio:1;flex:none;margin:0 auto 8px;background:radial-gradient(circle at 50% 45%,#263d5e,#101a2c 75%);border:1px solid #526987;border-radius:8px;overflow:hidden}
+.tutorial-grid{position:absolute;left:12.5%;top:12.5%;width:75%;height:75%;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-template-rows:repeat(6,minmax(0,1fr))}
+.tutorial-cell{border:1px solid rgba(118,163,207,.42);background:rgba(75,116,160,.12)}
+.tutorial-object{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);pointer-events:none}
+.tutorial-player{width:calc(75% / 6 * .92);aspect-ratio:1;background:#05080e;border:2px solid #101522;border-radius:5px;z-index:7}
+.tutorial-player:after{content:"";position:absolute;width:4px;height:4px;left:50%;top:50%;transform:translate(-50%,-50%) rotate(45deg);border:1.5px solid #d7e8ff}
+.tutorial-missile{width:22px;height:14px;background:var(--missile-color,#ff4d91);border-radius:0 50% 50% 0;z-index:5}
+.tutorial-missile.fast{height:7px;width:22px;--missile-color:#43e4e8}
+.tutorial-missile.large{width:37.5%;min-width:37.5%;height:18.75%;box-sizing:border-box;background:#05070b;border:1px solid #8c9bad;border-radius:0 50% 50% 0;z-index:5}
+.tutorial-flame{width:38px;height:9px;border-radius:50%;background:linear-gradient(to right,#ff2600 0%,#ff6500 25%,#ffcf22 55%,#fff5a0 75%,#ff6500 100%);box-shadow:0 0 4px #ff2600,0 0 8px #ff6500,0 0 13px rgba(255,100,0,.8);z-index:6;animation:flame-flicker 120ms infinite alternate;transform:translate(-100%,-50%) rotate(180deg)}
+.tutorial-special-square{width:16px;height:16px;background:#ffd928;border:1px solid #fff19a;z-index:6;box-shadow:0 0 7px rgba(255,217,40,.7)}
+.tutorial-special-beam{position:absolute;left:8%;top:calc(50% - 2px);width:84%;height:4px;background:#fff36a;box-shadow:0 0 5px #fff36a,0 0 12px #ffcf33;z-index:4;pointer-events:none}
+.tutorial-ring{position:absolute;left:43.75%;top:43.75%;width:66%;height:66%;border:6px solid #42ff8b;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 10px #42ff8b,0 0 18px #42ff8b,inset 0 0 8px #42ff8b;opacity:.9;z-index:3}.tutorial-ring.inner-green{width:43%;height:43%;border-width:3px;border-color:#43ff9a;box-shadow:0 0 8px #43ff9a,inset 0 0 6px #43ff9a}.tutorial-ring.inner-white{width:23%;height:23%;border-width:2px;border-color:#f3fff9;box-shadow:0 0 8px #fff,inset 0 0 5px #fff}
+.tutorial-explosion{position:absolute;width:1px;height:1px;z-index:8;pointer-events:none}
+.tutorial-explosion .explosion-flash{left:-45px;top:-45px;width:90px;height:90px}
+.tutorial-explosion .explosion-ring{transform:scale(.75)}
+.tutorial-explosion .explosion-particle{animation-duration:650ms}
+#tutorialRankingDemo{width:min(100%,230px);height:230px;box-sizing:border-box;flex:none;margin:0 auto 16px;background:#111d30;border:1px solid #405675;border-radius:8px;padding:13px;color:#eaf2ff;font-size:11px}
+#tutorialRankingDemo .t-name{display:flex;gap:6px;margin:8px 0 12px}#tutorialRankingDemo .t-input{flex:1;background:#0b1423;border:1px solid #647b98;border-radius:4px;padding:7px;color:#fff}#tutorialRankingDemo .t-button{background:#3c83bd;color:white;border:0;border-radius:4px;padding:7px 12px}#tutorialRankingDemo ol{margin:8px 0 0;padding-left:22px;line-height:1.9;color:#c8d8ed}
+#tutorialNav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}#tutorialNav button{border:1px solid #6c83a2;border-radius:7px;padding:10px 16px;background:#263c5b;color:#fff;font-weight:700}#tutorialNav button:disabled{opacity:.35}#tutorialNext{background:#267db5!important;border-color:#55b9f0!important;flex:1}#tutorialDots{display:flex;gap:6px;justify-content:center}#tutorialDots span{width:7px;height:7px;border-radius:50%;background:#536782}#tutorialDots span.active{background:#70caff;box-shadow:0 0 7px #70caff}
+#tutorialOpen{display:block;margin:8px auto 12px;padding:7px 18px;border:1px solid #607b9d;border-radius:20px;background:#263b58;color:#eaf4ff;font-weight:700}
+@media(max-height:650px){#tutorialCard{height:min(94dvh,560px);padding:12px}#tutorialTitle{font-size:19px}#tutorialText{height:82px;font-size:13px}.tutorial-demo,#tutorialRankingDemo{width:min(100%,190px);height:190px}}
 </style>
 </head>
 
@@ -770,6 +801,8 @@ html.game-running .game {
       <div class="stat-value" id="best">0</div>
     </div>
   </div>
+
+  <button id="tutorialOpen" type="button">遊び方</button>
 
   <div id="stage">
     <canvas id="starfield" aria-hidden="true"></canvas>
@@ -853,6 +886,17 @@ html.game-running .game {
     </button>
   </section>
 </main>
+
+<div id="tutorialOverlay" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle">
+  <div id="tutorialCard">
+    <div id="tutorialTop"><span>MISSILE SURVIVOR</span><span id="tutorialCount">1 / 5</span></div>
+    <h2 id="tutorialTitle">ゲームの目的</h2>
+    <p id="tutorialText"></p>
+    <div id="tutorialVisual"></div>
+    <div id="tutorialNav"><button id="tutorialPrev" type="button">戻る</button><div id="tutorialDots"></div><button id="tutorialNext" type="button">次へ</button></div>
+  </div>
+</div>
+
   
 <script>
 "use strict";
@@ -1299,8 +1343,8 @@ function spawnMissile() {
     m.baseSpeed = 190;
     m.element.style.background = "#ed1472";
   } else if (type === "big") {
-    m.w = 120;
-    m.h = 72;
+    m.w = 180;
+    m.h = 108;
     m.baseSpeed = 77;
     m.element.style.background = "#05070c";
     m.element.style.border = "1px solid #718096";
@@ -2622,6 +2666,59 @@ function animateStarfield(now) {
 resizeStarfield();
 window.addEventListener("resize", resizeStarfield);
 requestAnimationFrame(animateStarfield);
+
+const tutorialPages = [
+  {title:"ゲームの目的",text:"四角い宇宙船「サバイバー」を動かしてミサイルから逃げ続けよう！パソコンなら十字キーかWASD、スマホならフリックで1マスずつサバイバーが移動するよ",visual:"board"},
+  {title:"炎で攻撃",text:"サバイバーが移動するたび炎を後ろから噴射！ミサイルを炎に当てると爆発させることができるぞ！",visual:"flame"},
+  {title:"電磁波攻撃",text:"敵を倒すかグリッドの外側にいることでゲージが貯まるよ。満タンになるとミサイルが近く危ないとき時間がゆっくりになり電磁波攻撃を打てるようになる！電磁波攻撃は全てのミサイルを一掃！",visual:"wave"},
+  {title:"いろんなミサイル",text:"速いミサイルや大きいミサイル、ビームを撃ってくるやつもいるぞ！モード変更でALLが全種類、それ以外はそれぞれのミサイル単一のモードだ。お気に入りのモードを見つけてみよう！",visual:"types"},
+  {title:"オンラインランキング",text:"ゲームオーバーになるとスコアが記録される。オンラインランキングに名前を登録することで自分の記録と他の人の記録を比べることができるぞ！まずは下にスクロールして名前を登録するところから始めよう",visual:"ranking"}
+];
+const tutorialOverlay=document.getElementById('tutorialOverlay');
+const tutorialTitle=document.getElementById('tutorialTitle');
+const tutorialText=document.getElementById('tutorialText');
+const tutorialVisual=document.getElementById('tutorialVisual');
+const tutorialCount=document.getElementById('tutorialCount');
+const tutorialPrev=document.getElementById('tutorialPrev');
+const tutorialNext=document.getElementById('tutorialNext');
+const tutorialDots=document.getElementById('tutorialDots');
+let tutorialIndex=0;
+function tutorialBoard(){
+  let cells='';for(let i=0;i<36;i++)cells+='<div class="tutorial-cell"></div>';
+  return `<div class="tutorial-demo"><div class="tutorial-grid">${cells}</div>`;
+}
+function tutorialObject(cls,x,y,extra=''){
+  return `<div class="tutorial-object ${cls}" style="--x:${(12.5+(x+.5)*12.5)}%;--y:${(12.5+(y+.5)*12.5)}%;${extra}"></div>`;
+}
+function tutorialExplosion(x,y){
+  let h=`<div class="tutorial-explosion" style="left:${x}%;top:${y}%"><div class="explosion-flash"></div><div class="explosion-ring"></div><div class="explosion-ring second"></div>`;
+  for(let i=0;i<32;i++){const a=Math.PI*2*i/32;const d=28+(i%5)*5;h+=`<div class="explosion-particle${i%4===0?' hot':''}" style="--dx:${Math.cos(a)*d}px;--dy:${Math.sin(a)*d}px"></div>`;}
+  for(let i=0;i<12;i++)h+='<div class="explosion-smoke"></div>';
+  return h+'</div>';
+}
+function buildTutorialVisual(type){
+  if(type==='ranking')return `<div id="tutorialRankingDemo"><b>ONLINE RANKING</b><div class="t-name"><div class="t-input">プレイヤー名</div><button class="t-button">登録</button></div><div>ランキング</div><ol><li>PLAYER　1200</li><li>GUEST　950</li><li>YOU　800</li></ol></div>`;
+  let h=tutorialBoard();
+  if(type==='board')h+=tutorialObject('tutorial-player',2,3)+tutorialObject('tutorial-missile',0,1,'--missile-color:#ff4d91')+tutorialObject('tutorial-missile',5,2,'--missile-color:#ff4d91')+tutorialObject('tutorial-missile',4,5,'--missile-color:#ff4d91');
+  if(type==='flame')h+=tutorialObject('tutorial-flame',3,3,'z-index:6')+tutorialObject('tutorial-player',3,3,'z-index:7')+tutorialObject('tutorial-missile',1,3,'--missile-color:#ff4d91');
+  if(type==='wave')h+='<div class="tutorial-ring"></div><div class="tutorial-ring inner-green"></div><div class="tutorial-ring inner-white"></div>'+tutorialObject('tutorial-player',2,2)+tutorialExplosion(25,28)+tutorialExplosion(76,35)+tutorialExplosion(70,76);
+  if(type==='types')h+=tutorialObject('tutorial-player',2,4)+tutorialObject('tutorial-missile',0,1,'--missile-color:#ff4d91')+tutorialObject('tutorial-missile fast',5,1)+`<div class="tutorial-object tutorial-missile large" style="--x:50%;--y:25%"></div><div class="tutorial-special-beam" style="left:8%;top:calc(43.75% - 2px);width:84%"></div><div class="tutorial-special-square tutorial-object" style="--x:8%;--y:43.75%"></div><div class="tutorial-special-square tutorial-object" style="--x:92%;--y:43.75%"></div>`;
+  return h+'</div>';
+}
+function renderTutorial(){
+  const page=tutorialPages[tutorialIndex];tutorialTitle.textContent=page.title;tutorialText.textContent=page.text;tutorialCount.textContent=`${tutorialIndex+1} / 5`;tutorialVisual.innerHTML=tutorialVisualHTML(page.visual);
+  tutorialPrev.disabled=tutorialIndex===0;tutorialNext.textContent=tutorialIndex===4?'ゲームに戻る':'次へ';
+  tutorialDots.innerHTML=tutorialPages.map((_,i)=>`<span class="${i===tutorialIndex?'active':''}"></span>`).join('');
+}
+function tutorialVisualHTML(type){return buildTutorialVisual(type);}
+function openTutorial(){tutorialIndex=0;renderTutorial();tutorialOverlay.classList.add('open');document.body.style.overflow='hidden';}
+function closeTutorial(){tutorialOverlay.classList.remove('open');document.body.style.overflow='';}
+tutorialPrev.addEventListener('click',()=>{if(tutorialIndex>0){tutorialIndex--;renderTutorial();}});
+tutorialNext.addEventListener('click',()=>{if(tutorialIndex===4)closeTutorial();else{tutorialIndex++;renderTutorial();}});
+document.getElementById('tutorialOpen').addEventListener('click',openTutorial);
+window.addEventListener('keydown',e=>{if(!tutorialOverlay.classList.contains('open'))return;if(e.key==='Escape')closeTutorial();if(e.key==='ArrowRight'&&tutorialIndex<4){tutorialIndex++;renderTutorial();}if(e.key==='ArrowLeft'&&tutorialIndex>0){tutorialIndex--;renderTutorial();}});
+openTutorial();
+
 </script>
 </body>
 </html>
