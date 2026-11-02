@@ -38,8 +38,9 @@ body {
   margin: 0;
   padding: 14px;
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
   overflow: visible;
   touch-action: pan-y;
   background: var(--background);
@@ -57,7 +58,8 @@ body {
   text-align: center;
   touch-action: pan-y;
   overscroll-behavior: auto;
-  margin: auto;
+  margin: 0 auto;
+  flex: 0 0 auto;
 }
 
 h1 {
@@ -117,8 +119,8 @@ h1 {
   background: #26364f;
   border: 1px solid #354968;
   border-radius: 8px;
-  touch-action: none;
-  overscroll-behavior: none;
+  touch-action: pan-y;
+  overscroll-behavior: auto;
 }
 
 html.game-running #stage {
@@ -780,6 +782,28 @@ html.game-running .game {
 #tutorialNav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}#tutorialNav button{border:1px solid #6c83a2;border-radius:7px;padding:10px 16px;background:#263c5b;color:#fff;font-weight:700}#tutorialNav button:disabled{opacity:.35}#tutorialNext{background:#267db5!important;border-color:#55b9f0!important;flex:1}#tutorialDots{display:flex;gap:6px;justify-content:center}#tutorialDots span{width:7px;height:7px;border-radius:50%;background:#536782}#tutorialDots span.active{background:#70caff;box-shadow:0 0 7px #70caff}
 #tutorialOpen{display:block;margin:8px auto 12px;padding:7px 18px;border:1px solid #607b9d;border-radius:20px;background:#263b58;color:#eaf4ff;font-weight:700}
 @media(max-height:650px){#tutorialCard{height:min(94dvh,560px);padding:12px}#tutorialTitle{font-size:19px}#tutorialText{height:82px;font-size:13px}.tutorial-demo,#tutorialRankingDemo{width:min(100%,190px);height:190px}}
+
+#siteFooter{
+  width:min(92vw,420px);
+  margin:36px auto 24px;
+  padding:18px 12px calc(22px + env(safe-area-inset-bottom));
+  flex:0 0 auto;
+  text-align:center;
+  border-top:1px solid rgba(143,216,255,.28);
+  color:#aebbd0;
+}
+#siteFooter a{
+  display:inline;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:none;
+  color:#bdeaff;
+  font-size:13px;
+  font-weight:600;
+  text-decoration:underline;
+}
+#siteFooter a:active{color:#fff;}
 </style>
 </head>
 
@@ -886,6 +910,10 @@ html.game-running .game {
     </button>
   </section>
 </main>
+<footer id="siteFooter">
+  <a href="privacy-policy.html">プライバシーポリシーとお問い合わせ</a>
+</footer>
+
 
 <div id="tutorialOverlay" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle">
   <div id="tutorialCard">
